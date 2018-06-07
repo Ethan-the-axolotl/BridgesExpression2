@@ -1,0 +1,11 @@
+@name Test
+@outputs B
+@persist A:fsensor 
+runOnTick(1)
+
+if(first() || dupefinished())
+{
+    A = entity():setFSensor(vec(0,0,0),vec(0,0,1), 25)
+}
+
+B = A:smp():getDistance()
