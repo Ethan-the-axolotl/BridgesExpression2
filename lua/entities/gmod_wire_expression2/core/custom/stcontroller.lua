@@ -3,7 +3,7 @@
 \******************************************************************************/
 
 -- Register the type up here before the Extension Registration so that the Wire LQ-PID still works
-registerType("state_controller", "xrd", nil,
+registerType("stcontroller", "xsc", nil,
 	nil,
 	nil,
 	function(retval)
