@@ -22,6 +22,7 @@ E2Lib.RegisterExtension("fsensor", true, "Lets E2 chips trace ray attachments an
 local function newFSensor(vEnt, vPos, vDir, nLen)
   if(not (vEnt and vEnt:IsValid())) then return nil end
   local oFSensor = {}; oFSensor.Cls = {} -- Table for storing the hit classes
+  oFSensor.Ent = vEnt -- Store attachment entity to manage local sampling
   oFSensor.Len = math.Clamp(nLen,-50000,50000) -- How long the length is
   oFSensor.Ign = {[vEnt]=true} -- Store the base entity for ignore
   -- Local tracer position the trace starts from
@@ -30,6 +31,7 @@ local function newFSensor(vEnt, vPos, vDir, nLen)
   oFSensor.Dir = Vector(vDir[1],vDir[2],vDir[3])
   oFSensor.Dir:Normalize() -- Normalize the direction
   oFSensor.Dir:Mul(oFSensor.Len) -- Multiply to add in real-time
+  oFSensor.Len = math.abs(oFSensor.Len) -- Length absolute
   -- http://wiki.garrysmod.com/page/Structures/TraceResult
   oFSensor.TrO = {} -- Trace output parameters
   -- http://wiki.garrysmod.com/page/Structures/Trace
@@ -40,11 +42,12 @@ local function newFSensor(vEnt, vPos, vDir, nLen)
     endpos = Vector(), -- The end   position of the trace
     filter = function(oEnt)
       if(not (oEnt and oEnt:IsValid())) then return end
-      if(oFSensor.Ign[oEnt] ~= nil) then return end
+      if(oFSensor.Ign[oEnt]) then return end
       local tCls, eCls = oFSensor.Cls, oEnt:GetClass()
-      if((next(tCls) ~= nil) and (tCls[eCls] == nil)) then return end
+      if(next(tCls) and (not tCls[eCls])) then return end
       return true -- Finally we register the trace hit enabled
-    end
+    end,
+    collisiongroup = COLLISION_GROUP_NONE, -- Collision group control
     ignoreworld = false } -- Should the trace ignore world or not
   return oFSensor
 end
@@ -96,9 +99,9 @@ e2function fsensor fsensor:remClassHit(string sC)
 end
 
 __e2setcost(5)
-e2function fsensor fsensor:setIgnoreWorld(number nS)
+e2function fsensor fsensor:setIgnoreWorld(number nN)
   if(not this) then return nil end
-  this.TrI.ignoreworld = (nS ~= 0); return this
+  this.TrI.ignoreworld = (nN ~= 0); return this
 end
 
 __e2setcost(5)
@@ -119,18 +122,25 @@ end
 __e2setcost(5)
 e2function fsensor fsensor:setLength(number nL)
   if(not this) then return nil end
-  this.Len = nL; this.Dir:Normalize();
-  this.Dir:Mul(this.Len); return this
+  this.Len = math.Clamp(nL,-50000,50000)
+  this.Dir:Normalize(); this.Dir:Mul(this.Len)
+  this.Len = math.abs(this.Len); return this
 end
 
 __e2setcost(5)
-e2function fsensor fsensor:setMask(number nM)
+e2function fsensor fsensor:setMask(number nN)
   if(not this) then return nil end
-  this.TrI.mask = nM; return this
+  this.TrI.mask = nN; return this
+end
+
+__e2setcost(5)
+e2function fsensor fsensor:setCollisionGroup(number nN)
+  if(not this) then return nil end
+  this.TrI.collisiongroup = nN; return this
 end
 
 __e2setcost(15)
-e2function fsensor fsensor:smpData()
+e2function fsensor fsensor:smpLocal()
   if(not this) then return nil end; local entLoc = this.Ent
   if(not (entLoc and entLoc:IsValid())) then return this end
   local entAng, trData = entLoc:GetAngles(), this.TrI
@@ -139,6 +149,17 @@ e2function fsensor fsensor:smpData()
   trData.start:Add(entLoc:GetPos())
   trData.endpos:Set(this.Dir)
   trData.endpos:Rotate(entAng)
+  trData.endpos:Add(trData.start)
+  -- http://wiki.garrysmod.com/page/util/TraceLine
+  util.TraceLine(trData); return this
+end
+
+__e2setcost(15)
+e2function fsensor fsensor:smpWorld()
+  if(not this) then return nil end
+  local trData = this.TrI
+  trData.start:Set(this.Pos)
+  trData.endpos:Set(this.Dir)
   trData.endpos:Add(trData.start)
   -- http://wiki.garrysmod.com/page/util/TraceLine
   util.TraceLine(trData); return this
@@ -249,7 +270,6 @@ e2function number fsensor:getSurfacePropsName()
   return (trV and util.GetSurfacePropName(trV) or 0)
 end
 
-
 __e2setcost(5)
 e2function number fsensor:getPhysicsBone()
   if(not this) then return 0 end
@@ -265,7 +285,7 @@ e2function number fsensor:getFraction()
 end
 
 __e2setcost(5)
-e2function number fsensor:getFractionDistance()
+e2function number fsensor:getFractionLength()
   if(not this) then return 0 end
   local trV = this.TrO.Fraction
   return (trV and (trV * this.Len) or 0)
@@ -293,7 +313,7 @@ e2function number fsensor:getFractionLeftSolid()
 end
 
 __e2setcost(5)
-e2function number fsensor:getFractionLeftSolidDistance()
+e2function number fsensor:getFractionLeftSolidLength()
   if(not this) then return 0 end
   local trV = this.TrO.FractionLeftSolid
   return (trV and (trV * this.Len) or 0)
