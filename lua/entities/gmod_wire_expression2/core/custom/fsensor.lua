@@ -19,7 +19,7 @@ registerType("fsensor", "xfs", nil,
 
 E2Lib.RegisterExtension("fsensor", true, "Lets E2 chips trace ray attachments and check for hits.")
 
-local function newFSensor(vEnt, vPos, vDir, nLen)
+local function makeFSensor(vEnt, vPos, vDir, nLen)
   if(not (vEnt and vEnt:IsValid())) then return nil end
   local oFSensor = {}; oFSensor.Cls = {} -- Table for storing the hit classes
   oFSensor.Ent = vEnt -- Store attachment entity to manage local sampling
@@ -69,49 +69,54 @@ end
 
 __e2setcost(20)
 e2function fsensor entity:setFSensor(vector vP, vector vD, number nL)
-  return newFSensor(this, vP, vD, nL)
+  return makeFSensor(this, vP, vD, nL)
 end
 
-__e2setcost(5)
+__e2setcost(20)
+e2function fsensor newFSensor(vector vP, vector vD, number nL)
+  return makeFSensor(nil, vP, vD, nL)
+end
+
+__e2setcost(3)
 e2function fsensor fsensor:addIgnoreEntityHit(entity vE)
   if(not this) then return nil end
   if(not (vE and vE:IsValid())) then return nil end
   this.Ign[vE] = true; return this
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function fsensor fsensor:remIgnoreEntityHit(entity vE)
   if(not this) then return nil end
   if(not (vE and vE:IsValid())) then return nil end
   this.Ign[vE] = nil; return this
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function fsensor fsensor:addClassHit(string sC)
   if(not this) then return nil end
   this.Cls[sC] = true; return this
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function fsensor fsensor:remClassHit(string sC)
   if(not this) then return nil end
   this.Cls[sC] = nil; return this
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function fsensor fsensor:setIgnoreWorld(number nN)
   if(not this) then return nil end
   this.TrI.ignoreworld = (nN ~= 0); return this
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function fsensor fsensor:setOrigin(vector vO)
   if(not this) then return nil end
   this.Pos[1], this.Pos[2], this.Pos[3] = vO[1], vO[2], vO[3]
   return this
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function fsensor fsensor:setDirection(vector vD)
   if(not this) then return nil end
   this.Dir[1], this.Dir[2], this.Dir[3] = vD[1], vD[2], vD[3]
@@ -119,7 +124,7 @@ e2function fsensor fsensor:setDirection(vector vD)
   return this
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function fsensor fsensor:setLength(number nL)
   if(not this) then return nil end
   this.Len = math.Clamp(nL,-50000,50000)
@@ -127,19 +132,19 @@ e2function fsensor fsensor:setLength(number nL)
   this.Len = math.abs(this.Len); return this
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function fsensor fsensor:setMask(number nN)
   if(not this) then return nil end
   this.TrI.mask = nN; return this
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function fsensor fsensor:setCollisionGroup(number nN)
   if(not this) then return nil end
   this.TrI.collisiongroup = nN; return this
 end
 
-__e2setcost(15)
+__e2setcost(12)
 e2function fsensor fsensor:smpLocal()
   if(not this) then return nil end; local entLoc = this.Ent
   if(not (entLoc and entLoc:IsValid())) then return this end
@@ -154,7 +159,7 @@ e2function fsensor fsensor:smpLocal()
   util.TraceLine(trData); return this
 end
 
-__e2setcost(15)
+__e2setcost(8)
 e2function fsensor fsensor:smpWorld()
   if(not this) then return nil end
   local trData = this.TrI
@@ -165,56 +170,56 @@ e2function fsensor fsensor:smpWorld()
   util.TraceLine(trData); return this
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:isHitNoDraw()
   if(not this) then return 0 end
   local trV = this.TrO.HitNoDraw
   return (trV and 1 or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:isHitNonWorld()
   if(not this) then return 0 end
   local trV = this.TrO.HitNonWorld
   return (trV and 1 or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:isHit()
   if(not this) then return 0 end
   local trV = this.TrO.Hit
   return (trV and 1 or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:isHitSky()
   if(not this) then return 0 end
   local trV = this.TrO.HitSky
   return (trV and 1 or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:isHitWorld()
   if(not this) then return 0 end
   local trV = this.TrO.HitWorld
   return (trV and 1 or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:getHitBox()
   if(not this) then return 0 end
   local trV = this.TrO.HitBox
   return (trV and trV or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:getMatType()
   if(not this) then return 0 end
   local trV = this.TrO.MatType
   return (trV and trV or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:getHitGroup()
   if(not this) then return 0 end
   local trV = this.TrO.HitGroup
@@ -256,70 +261,70 @@ e2function vector fsensor:getStartPos()
   return (trV and {trV[1], trV[2], trV[3]} or {0,0,0})
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:getSurfaceProps()
   if(not this) then return 0 end
   local trV = this.TrO.SurfaceProps
   return (trV and trV or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:getSurfacePropsName()
   if(not this) then return 0 end
   local trV = this.TrO.SurfaceProps
   return (trV and util.GetSurfacePropName(trV) or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:getPhysicsBone()
   if(not this) then return 0 end
   local trV = this.TrO.PhysicsBone
   return (trV and trV or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:getFraction()
   if(not this) then return 0 end
   local trV = this.TrO.Fraction
   return (trV and trV or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:getFractionLength()
   if(not this) then return 0 end
   local trV = this.TrO.Fraction
   return (trV and (trV * this.Len) or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:isStartSolid()
   if(not this) then return 0 end
   local trV = this.TrO.StartSolid
   return (trV and 1 or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:isAllSolid()
   if(not this) then return 0 end
   local trV = this.TrO.AllSolid
   return (trV and 1 or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:getFractionLeftSolid()
   if(not this) then return 0 end
   local trV = this.TrO.FractionLeftSolid
   return (trV and trV or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function number fsensor:getFractionLeftSolidLength()
   if(not this) then return 0 end
   local trV = this.TrO.FractionLeftSolid
   return (trV and (trV * this.Len) or 0)
 end
 
-__e2setcost(5)
+__e2setcost(3)
 e2function entity fsensor:getEntity()
   if(not this) then return nil end
   local trV = this.TrO.Entity

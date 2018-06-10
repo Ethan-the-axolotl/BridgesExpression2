@@ -1,0 +1,26 @@
+@name Test Control
+@inputs But RF
+@outputs PV CN TT EE:array
+@persist T:fsensor E:entity C:scontrol
+@trigger 
+@model models/props_phx/construct/metal_wire1x1x1.mdl
+
+runOnTick(1)
+
+if(first() || dupefinished())
+{
+    E = entity()
+    T = E:setFSensor(E:massCenterL(),vec(0,0,1), -225):addClassHit("prop_physics")
+    C = newSControl():setGains(500, 1, 1000):setWindup(-4000,4000)
+    E:setMass(250)
+}
+
+PV = T:smpLocal():getFractionLength()
+CN = C:setState(RF, PV):setToggle(But):getControl()
+
+
+TT = C:getTimeDelta()
+
+E:applyForce(CN * vec(0,0,1))
+
+EE = C:getError()
