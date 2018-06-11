@@ -1,7 +1,7 @@
 @name Test Control
 @inputs But RF
-@outputs PV CN TT EE:array
-@persist T:fsensor E:entity C:scontrol
+@outputs PV CN TT EE RR
+@persist T:fsensor E:entity C:stcontroller
 @trigger 
 @model models/props_phx/construct/metal_wire1x1x1.mdl
 
@@ -11,7 +11,7 @@ if(first() || dupefinished())
 {
     E = entity()
     T = E:setFSensor(E:massCenterL(),vec(0,0,1), -225):addClassHit("prop_physics")
-    C = newSControl():setGains(500, 1, 1000):setWindup(-4000,4000)
+    C = newSControl():setGains(1700, 6800, 7800):setWindup(-9000,9000):dumpConsole("TEST")
     E:setMass(250)
 }
 
@@ -24,3 +24,5 @@ TT = C:getTimeDelta()
 E:applyForce(CN * vec(0,0,1))
 
 EE = C:getError()
+RR = C:getTimeRatio()
+BB = C:getTimeBench()

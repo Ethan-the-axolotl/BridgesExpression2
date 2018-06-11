@@ -4,15 +4,15 @@
 
 -- Register the type up here before the extension registration so that the fsensor still works
 registerType("fsensor", "xfs", nil,
-	nil,
-	nil,
-	function(retval)
-		if(retval == nil) then return end
-		if(not istable(retval)) then error("Return value is neither nil nor a table, but a "..type(retval).."!",0) end
-	end,
-	function(v)
-		return (not istable(v)) or (not v.StartPos)
-	end
+  nil,
+  nil,
+  function(retval)
+    if(retval == nil) then return end
+    if(not istable(retval)) then error("Return value is neither nil nor a table, but a "..type(retval).."!",0) end
+  end,
+  function(v)
+    return (not istable(v)) or (not v.StartPos)
+  end
 )
 
 /******************************************************************************/
@@ -54,16 +54,16 @@ end
 --[[ **************************** TRACER **************************** ]]
 
 registerOperator("ass", "xfs", "xfs", function(self, args)
-	local lhs, op2, scope = args[2], args[3], args[4]
-	local      rhs = op2[1](self, op2)
-	self.Scopes[scope][lhs] = rhs
-	self.Scopes[scope].vclk[lhs] = true
-	return rhs
+  local lhs, op2, scope = args[2], args[3], args[4]
+  local      rhs = op2[1](self, op2)
+  self.Scopes[scope][lhs] = rhs
+  self.Scopes[scope].vclk[lhs] = true
+  return rhs
 end)
 
 __e2setcost(1)
 e2function fsensor noFSensor()
-	return nil
+  return nil
 end
 
 __e2setcost(20)

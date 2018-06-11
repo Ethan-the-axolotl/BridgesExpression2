@@ -4,15 +4,15 @@
 
 -- Register the type up here before the extension registration so that the state controller still works
 registerType("stcontroller", "xsc", nil,
-	nil,
-	nil,
-	function(retval)
-		if(retval == nil) then return end
-		if(not istable(retval)) then error("Return value is neither nil nor a table, but a "..type(retval).."!",0) end
-	end,
-	function(v)
-		return (not istable(v))
-	end
+  nil,
+  nil,
+  function(retval)
+    if(retval == nil) then return end
+    if(not istable(retval)) then error("Return value is neither nil nor a table, but a "..type(retval).."!",0) end
+  end,
+  function(v)
+    return (not istable(v))
+  end
 )
 
 /******************************************************************************/
@@ -33,23 +33,23 @@ local function makeSControl()
   oStCon.mvP  , oStCon.mvI  , oStCon.mvD   = 0, 0, 0 -- Term values
   oStCon.mkP  , oStCon.mkI  , oStCon.mkD   = 0, 0, 0 -- P, I and D term gains
   oStCon.mpP  , oStCon.mpI  , oStCon.mpD   = 1, 1, 1 -- Raise the error to power of that much
-  oStCon.mbCmb, oStCon.mbInv, oStCon.mbOn = true, false, true
+  oStCon.mbCmb, oStCon.mbInv, oStCon.mbOn = false, false, false
   return oStCon
 end
 
 --[[ **************************** CONTROLLER **************************** ]]
 
 registerOperator("ass", "xsc", "xsc", function(self, args)
-	local lhs, op2, scope = args[2], args[3], args[4]
-	local      rhs = op2[1](self, op2)
-	self.Scopes[scope][lhs] = rhs
-	self.Scopes[scope].vclk[lhs] = true
-	return rhs
+  local lhs, op2, scope = args[2], args[3], args[4]
+  local      rhs = op2[1](self, op2)
+  self.Scopes[scope][lhs] = rhs
+  self.Scopes[scope].vclk[lhs] = true
+  return rhs
 end)
 
 __e2setcost(1)
 e2function stcontroller noSControl()
-	return nil
+  return nil
 end
 
 __e2setcost(20)
@@ -192,7 +192,7 @@ end
 __e2setcost(3)
 e2function number stcontroller:getTimeRatio()
   if(not this) then return nil end
-  return (this.mTimB or 0) / (this.mTimN - this.mTimO))
+  return ((this.mTimB or 0) / (this.mTimN - this.mTimO))
 end
 
 __e2setcost(3)
@@ -267,8 +267,8 @@ e2function stcontroller stcontroller:setState(number nR, number nY)
     this.mvCon, this.meInt = 0, true  -- Control value and integral enabled
     this.mvP, this.mvI, this.mvD = 0, 0, 0 -- Term values
     this.mTimN = getTime(); this.mTimO = this.mTimN; -- Reset clock
-  else this.mTimN = getTime()
-    this.mErrN  = (this.mbInv and (nY-nR) or (nR-nY))
+  else this.mTimO = this.mTimN; this.mTimN = getTime()
+    this.mErrO = this.mErrN; this.mErrN = (this.mbInv and (nY-nR) or (nR-nY))
     local timDt = (this.mTimN - this.mTimO)
     if(this.mkP > 0) then -- P-Term
       this.mvP = getValue(this.mkP, this.mErrN, this.mpP) end
@@ -279,25 +279,25 @@ e2function stcontroller stcontroller:setState(number nR, number nY)
       local arDif = (this.mErrN - this.mErrO) / timDt -- Derivative dY/dT
       this.mvD = getValue(this.mkD * timDt, arDif, this.mpD) end
     this.mvCon = this.mvP + this.mvI + this.mvD         -- Calculate the control signal
-    if(this.mSatD and this.mvCon < this.mSatD) then     -- Satuarate lower limit
+    if(this.mSatD and this.mvCon < this.mSatD) then     -- Saturate lower limit
       this.mvCon, this.meInt = this.mSatD, false        -- Integral is disabled
-    elseif(this.mSatU and this.mvCon > this.mSatU) then -- Satuarate upper limit
+    elseif(this.mSatU and this.mvCon > this.mSatU) then -- Saturate upper limit
       this.mvCon, this.meInt = this.mSatU, false        -- Integral is disabled
     else this.meInt = true end -- Saturation disables the integrator
     this.mvCon = (this.mvCon + this.mBias) -- Apply the saturated signal bias
     this.mTimB = (getTime() - this.mTimN)  -- Benchmark the process
-    this.mTimO, this.mErrO = this.mTimN, this.mErrN -- Prepare for the next iteration
   end; return this
 end
 
 __e2setcost(15)
 e2function stcontroller stcontroller:dumpConsole(string sI)
-  print("["..sI.."]["..table.concat(this.mType).."] Properties:")
+  print("["..sI.."]["..table.concat(this.mType).."]["..tostring(this.mTimN).."] Properties:")
   print("  Gains: {P="..tostring(this.mkP)  ..", I=" ..tostring(this.mkI)  ..", D="..tostring(this.mkD).."}")
   print("  Power: {P="..tostring(this.mpP)  ..", I=" ..tostring(this.mpI)  ..", D="..tostring(this.mpD).."}")
   print("  Limit: {D="..tostring(this.mSatD)..", U=" ..tostring(this.mSatU).."}")
   print("  Error: {O="..tostring(this.mErrO)..", N=" ..tostring(this.mErrN).."}")
   print("  Value: ["  ..tostring(this.mvCon).."] {P="..tostring(this.mvP)  ..", I="
                       ..tostring(this.mvI)  ..", D=" ..tostring(this.mvD)  .."}")
+  print("  Flags: ["..tostring(this.mbOn).."]{C="..tostring(this.mbCmb)..", R=" ..tostring(this.mbInv)..", I="..tostring(this.meInt).."}")
   return this -- The dump method
 end
