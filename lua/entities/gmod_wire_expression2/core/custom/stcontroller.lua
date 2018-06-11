@@ -26,7 +26,7 @@ local function getValue(kV,eV,pV) return (kV*getSign(eV)*math.abs(eV)^pV) end
 
 local function makeSControl()
   local oStCon = {}; oStCon.mType = {} -- Place to store the object
-  oStCon.mTimO, oStCon.mTimN = getTime(), getTime() -- Time delta of the E2 chop for derivative
+  oStCon.mTimN = getTime(); oStCon.mTimO = oStCon.mTimN; -- Reset clock
   oStCon.mErrO, oStCon.mErrN = 0, 0     -- Error state values
   oStCon.mvCon, oStCon.mTimB, oStCon.meInt = 0, 0, true  -- Control value and integral enabled
   oStCon.mBias, oStCon.mSatD, oStCon.mSatU = 0, nil, nil -- Saturation limits and settings
@@ -255,7 +255,7 @@ e2function stcontroller stcontroller:resState()
   this.mErrO, this.mErrN = 0, 0 -- Reset the error
   this.mvCon, this.meInt = 0, true  -- Control value and integral enabled
   this.mvP, this.mvI, this.mvD = 0, 0, 0 -- Term values
-  this.mTimO, this.mTimN = getTime(), getTime() -- Reset clock
+  this.mTimN = getTime(); this.mTimO = this.mTimN; -- Reset clock
   return this
 end
 
@@ -266,7 +266,7 @@ e2function stcontroller stcontroller:setState(number nR, number nY)
     this.mErrO, this.mErrN = 0, 0 -- Reset the error
     this.mvCon, this.meInt = 0, true  -- Control value and integral enabled
     this.mvP, this.mvI, this.mvD = 0, 0, 0 -- Term values
-    this.mTimO, this.mTimN = getTime(), getTime() -- Reset clock
+    this.mTimN = getTime(); this.mTimO = this.mTimN; -- Reset clock
   else this.mTimN = getTime()
     this.mErrN  = (this.mbInv and (nY-nR) or (nR-nY))
     local timDt = (this.mTimN - this.mTimO)
