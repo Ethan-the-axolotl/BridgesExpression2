@@ -25,7 +25,7 @@ local function getSign(nV) return ((nV > 0 and 1) or (nV < 0 and -1) or 0) end
 local function getValue(kV,eV,pV) return (kV*getSign(eV)*math.abs(eV)^pV) end
 
 local function makeSControl()
-  local oStCon = {}; oStCon.mType = {} -- Place to store the object
+  local oStCon = {}; oStCon.mType = {"",""} -- Place to store the object
   oStCon.mTimN = getTime(); oStCon.mTimO = oStCon.mTimN; -- Reset clock
   oStCon.mErrO, oStCon.mErrN = 0, 0     -- Error state values
   oStCon.mvCon, oStCon.mTimB, oStCon.meInt = 0, 0, true  -- Control value and integral enabled
@@ -90,7 +90,7 @@ end
 __e2setcost(3)
 e2function string stcontroller:getType()
   if(not this) then return "" end
-  return table.concat(this.mType, "-")
+  return table.concat(this.mType)
 end
 
 __e2setcost(3)
@@ -113,6 +113,12 @@ e2function stcontroller stcontroller:setWindupD(nD)
 end
 
 __e2setcost(3)
+e2function stcontroller stcontroller:getWindupD(nD)
+  if(not this) then return nil end
+  return (this.mSatD or 0)
+end
+
+__e2setcost(3)
 e2function stcontroller stcontroller:remWindupD(nD)
   if(not this) then return nil end
   this.mSatD = nil; return this
@@ -125,21 +131,15 @@ e2function stcontroller stcontroller:setWindupU(nU)
 end
 
 __e2setcost(3)
-e2function stcontroller stcontroller:remWindupU(nU)
-  if(not this) then return nil end
-  this.mSatU = nil; return this
-end
-
-__e2setcost(3)
-e2function stcontroller stcontroller:getWindupD(nD)
-  if(not this) then return nil end
-  return (this.mSatD or 0)
-end
-
-__e2setcost(3)
 e2function stcontroller stcontroller:getWindupU(nU)
   if(not this) then return nil end
   return (this.mSatU or 0)
+end
+
+__e2setcost(3)
+e2function stcontroller stcontroller:remWindupU(nU)
+  if(not this) then return nil end
+  this.mSatU = nil; return this
 end
 
 __e2setcost(8)
@@ -148,7 +148,7 @@ e2function stcontroller stcontroller:setPower(nP, nI, nD)
   this.mpP, this.mpI, this.mpD = nP, nI, nD
   local bP, bI, bD = (nP ~= 1), (nI ~= 1), (nD ~= 1)
   if(bP or bI or bD) then 
-    this.mType[1] = ("LQ(%s%s%s)"):format(
+    this.mType[1] = ("LQ(%s%s%s)-"):format(
       bP and "P" or "", bI and "I" or "", bD and "D" or "")
   end; return this
 end
@@ -292,11 +292,12 @@ end
 
 __e2setcost(15)
 e2function stcontroller stcontroller:dumpConsole(string sI)
-  print("["..sI.."]["..this.mType.."] Properties:")
-  print("  Gains: {P="..tostring(mkP)..", I="..tostring(mkI)..", D="..tostring(mkD).."}")
-  print("  Power: {P="..tostring(mpP)..", I="..tostring(mpI)..", D="..tostring(mpD).."}\n")
-  print("  Limit: {D="..tostring(mSatD)..",U="..tostring(mSatU).."}")
-  print("  Error: {"..tostring(mErrO)..", "..tostring(mErrN).."}")
-  print("  Value: ["..tostring(mvCon).."] {P="..tostring(mvP)..", I="..tostring(mvI)..", D="..tostring(mvD).."}")
+  print("["..sI.."]["..table.concat(this.mType).."] Properties:")
+  print("  Gains: {P="..tostring(this.mkP)  ..", I=" ..tostring(this.mkI)  ..", D="..tostring(this.mkD).."}")
+  print("  Power: {P="..tostring(this.mpP)  ..", I=" ..tostring(this.mpI)  ..", D="..tostring(this.mpD).."}")
+  print("  Limit: {D="..tostring(this.mSatD)..", U=" ..tostring(this.mSatU).."}")
+  print("  Error: {O="..tostring(this.mErrO)..", N=" ..tostring(this.mErrN).."}")
+  print("  Value: ["  ..tostring(this.mvCon).."] {P="..tostring(this.mvP)  ..", I="
+                      ..tostring(this.mvI)  ..", D=" ..tostring(this.mvD)  .."}")
   return this -- The dump method
 end
