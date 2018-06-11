@@ -268,10 +268,10 @@ e2function number fsensor:getSurfaceProps()
 end
 
 __e2setcost(3)
-e2function number fsensor:getSurfacePropsName()
-  if(not this) then return 0 end
+e2function string fsensor:getSurfacePropsName()
+  if(not this) then return "" end
   local trV = this.TrO.SurfaceProps
-  return (trV and util.GetSurfacePropName(trV) or 0)
+  return (trV and util.GetSurfacePropName(trV) or "")
 end
 
 __e2setcost(3)
