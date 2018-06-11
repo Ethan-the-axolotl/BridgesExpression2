@@ -25,7 +25,7 @@ local function getSign(nV) return ((nV > 0 and 1) or (nV < 0 and -1) or 0) end
 local function getValue(kV,eV,pV) return (kV*getSign(eV)*math.abs(eV)^pV) end
 
 local function makeSControl()
-  local oStCon = {}; oStCon.mType = ""  -- Place to store the object
+  local oStCon = {}; oStCon.mType = {} -- Place to store the object
   oStCon.mTimO, oStCon.mTimN = getTime(), getTime() -- Time delta of the E2 chop for derivative
   oStCon.mErrO, oStCon.mErrN = 0, 0     -- Error state values
   oStCon.mvCon, oStCon.mTimB, oStCon.meInt = 0, 0, true  -- Control value and integral enabled
@@ -60,17 +60,13 @@ end
 __e2setcost(7) -- Kp, Ti, Td
 e2function stcontroller stcontroller:setGains(nP, nI, nD)
   if(not this) then return nil end
-  if(nP <= 0) then return nil end
-  local sT = "P"; this.mkP = nP
-  if(nI > 0) then this.mkI, sT = (nI / 2), (sT.."I")
+  if(nP <= 0) then return nil end; this.mType[2] = "P"; this.mkP = nP
+  if(nI > 0) then this.mkI, this.mType[2] = (nI / 2), (this.mType[2].."I")
     if(this.mbCmb) then this.mkI = this.mkI * this.mkP end
   end
-  if(nD > 0) then this.mkD, sT = nD, (sT.."D")
+  if(nD > 0) then this.mkD, this.mType[2] = nD, (this.mType[2].."D")
     if(this.mbCmb) then this.mkD = this.mkD * this.mkP end
-  end
-  if(this.mType:len() > 0) then
-    this.mType = this.mType.."-"..sT
-  else this.mType = sT end; return this
+  end; return this
 end
 
 __e2setcost(3)
@@ -94,7 +90,7 @@ end
 __e2setcost(3)
 e2function string stcontroller:getType()
   if(not this) then return "" end
-  return this.mType
+  return table.concat(this.mType, "-")
 end
 
 __e2setcost(3)
@@ -150,15 +146,11 @@ __e2setcost(8)
 e2function stcontroller stcontroller:setPower(nP, nI, nD)
   if(not this) then return nil end
   this.mpP, this.mpI, this.mpD = nP, nI, nD
-  local bP, sT = (nP ~= 1), ""
-  local bI, bD = (nI ~= 1), (nD ~= 1)
+  local bP, bI, bD = (nP ~= 1), (nI ~= 1), (nD ~= 1)
   if(bP or bI or bD) then 
-    sT = ("LQ(%s%s%s)"):format(
+    this.mType[1] = ("LQ(%s%s%s)"):format(
       bP and "P" or "", bI and "I" or "", bD and "D" or "")
-  end
-  if(this.mType:len() > 0) then
-    this.mType = sT.."-"..this.mType
-  else this.mType = sT end; return this
+  end; return this
 end
 
 __e2setcost(3)
