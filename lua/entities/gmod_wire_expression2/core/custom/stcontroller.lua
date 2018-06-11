@@ -25,16 +25,16 @@ local function getSign(nV) return ((nV > 0 and 1) or (nV < 0 and -1) or 0) end
 local function getValue(kV,eV,pV) return (kV*getSign(eV)*math.abs(eV)^pV) end
 
 local function makeSControl()
-  local oSControl = {}; oSControl.mType = ""  -- Place to store the object
-  oSControl.mTimO, oSControl.mTimN = getTime(), getTime() -- Time delta of the E2 chop for derivative
-  oSControl.mErrO, oSControl.mErrN = 0, 0     -- Error state values
-  oSControl.mvCon, oSControl.meInt = 0, true  -- Control value and integral enabled
-  oSControl.mSatD, oSControl.mSatU = nil, nil -- Saturation limits and settings
-  oSControl.mvP  , oSControl.mvI  , oSControl.mvD = 0, 0, 0 -- Term values
-  oSControl.mkP  , oSControl.mkI  , oSControl.mkD = 0, 0, 0 -- P, I and D term gains
-  oSControl.mpP  , oSControl.mpI  , oSControl.mpD = 1, 1, 1 -- Raise the error to power of that much
-  oSControl.mbCmb, oSControl.mbInv, oSControl.mbOn = true, false, true
-  return oSControl
+  local oStCon = {}; oStCon.mType = ""  -- Place to store the object
+  oStCon.mTimO, oStCon.mTimN = getTime(), getTime() -- Time delta of the E2 chop for derivative
+  oStCon.mErrO, oStCon.mErrN = 0, 0     -- Error state values
+  oStCon.mvCon, oStCon.mTimB, oStCon.meInt = 0, 0, true  -- Control value and integral enabled
+  oStCon.mBias, oStCon.mSatD, oStCon.mSatU = 0, nil, nil -- Saturation limits and settings
+  oStCon.mvP  , oStCon.mvI  , oStCon.mvD   = 0, 0, 0 -- Term values
+  oStCon.mkP  , oStCon.mkI  , oStCon.mkD   = 0, 0, 0 -- P, I and D term gains
+  oStCon.mpP  , oStCon.mpI  , oStCon.mpD   = 1, 1, 1 -- Raise the error to power of that much
+  oStCon.mbCmb, oStCon.mbInv, oStCon.mbOn = true, false, true
+  return oStCon
 end
 
 --[[ **************************** CONTROLLER **************************** ]]
@@ -57,26 +57,38 @@ e2function stcontroller newSControl()
   return makeSControl()
 end
 
-__e2setcost(3) -- Kp, Ti, Td
+__e2setcost(7) -- Kp, Ti, Td
 e2function stcontroller stcontroller:setGains(nP, nI, nD)
   if(not this) then return nil end
   if(nP <= 0) then return nil end
-  this.mkP, this.mType = nP, "P"
-  if(nI > 0) then
-    this.mkI, this.mType = (nI / 2), (this.mType.."I")
+  local sT = "P"; this.mkP = nP
+  if(nI > 0) then this.mkI, sT = (nI / 2), (sT.."I")
     if(this.mbCmb) then this.mkI = this.mkI * this.mkP end
   end
-  if(nD > 0) then
-    this.mkD, this.mType = nD, (this.mType.."D")
+  if(nD > 0) then this.mkD, sT = nD, (sT.."D")
     if(this.mbCmb) then this.mkD = this.mkD * this.mkP end
   end
-  return this
+  if(this.mType:len() > 0) then
+    this.mType = this.mType.."-"..sT
+  else this.mType = sT end; return this
 end
 
 __e2setcost(3)
 e2function array stcontroller:getGains()
   if(not this) then return {0,0,0} end
   return {this.mkP, this.mkI, this.mkD}
+end
+
+__e2setcost(3)
+e2function stcontroller stcontroller:setBias(nN)
+  if(not this) then return nil end
+  this.mBias = nN; return this
+end
+
+__e2setcost(3)
+e2function number stcontroller:getBias(nN)
+  if(not this) then return 0 end
+  return this.mBias
 end
 
 __e2setcost(3)
@@ -88,22 +100,65 @@ end
 __e2setcost(3)
 e2function stcontroller stcontroller:setWindup(nD, nU)
   if(not this) then return nil end
-  if(nD < nU) then
-    this.mSatD, this.mSatU = nD, nU end 
+  if(nD < nU) then this.mSatD, this.mSatU = nD, nU end 
   return this
 end
 
 __e2setcost(3)
-e2function array stcontroller:getWindup()
-  if(not this) then return {0,0} end
-  return {this.mSatD, this.mSatU}
+e2function stcontroller stcontroller:remWindup()
+  if(not this) then return nil end
+  this.mSatD, this.mSatU = nil, nil; return this
 end
 
 __e2setcost(3)
+e2function stcontroller stcontroller:setWindupD(nD)
+  if(not this) then return nil end
+  this.mSatD = nD; return this
+end
+
+__e2setcost(3)
+e2function stcontroller stcontroller:remWindupD(nD)
+  if(not this) then return nil end
+  this.mSatD = nil; return this
+end
+
+__e2setcost(3)
+e2function stcontroller stcontroller:setWindupU(nU)
+  if(not this) then return nil end
+  this.mSatU = nU; return this
+end
+
+__e2setcost(3)
+e2function stcontroller stcontroller:remWindupU(nU)
+  if(not this) then return nil end
+  this.mSatU = nil; return this
+end
+
+__e2setcost(3)
+e2function stcontroller stcontroller:getWindupD(nD)
+  if(not this) then return nil end
+  return (this.mSatD or 0)
+end
+
+__e2setcost(3)
+e2function stcontroller stcontroller:getWindupU(nU)
+  if(not this) then return nil end
+  return (this.mSatU or 0)
+end
+
+__e2setcost(8)
 e2function stcontroller stcontroller:setPower(nP, nI, nD)
   if(not this) then return nil end
   this.mpP, this.mpI, this.mpD = nP, nI, nD
-  return this
+  local bP, sT = (nP ~= 1), ""
+  local bI, bD = (nI ~= 1), (nD ~= 1)
+  if(bP or bI or bD) then 
+    sT = ("LQ(%s%s%s)"):format(
+      bP and "P" or "", bI and "I" or "", bD and "D" or "")
+  end
+  if(this.mType:len() > 0) then
+    this.mType = sT.."-"..this.mType
+  else this.mType = sT end; return this
 end
 
 __e2setcost(3)
@@ -113,9 +168,9 @@ e2function array stcontroller:getPower()
 end
 
 __e2setcost(3)
-e2function array stcontroller:getError()
-  if(not this) then return {0,0} end
-  return {this.mErrO, this.mErrN}
+e2function number stcontroller:getError()
+  if(not this) then return 0 end
+  return this.mErrN
 end
 
 __e2setcost(3)
@@ -125,15 +180,27 @@ e2function number stcontroller:getErrorDelta()
 end
 
 __e2setcost(3)
-e2function array stcontroller:getTime()
-  if(not this) then return {0,0} end
-  return {this.mTimO, this.mTimN}
+e2function number stcontroller:getTime()
+  if(not this) then return 0 end
+  return this.mTimN
 end
 
 __e2setcost(3)
 e2function number stcontroller:getTimeDelta()
   if(not this) then return 0 end
   return (this.mTimN - this.mTimO)
+end
+
+__e2setcost(3)
+e2function number stcontroller:getTimeBench()
+  if(not this) then return nil end
+  return (this.mTimB or 0)
+end
+
+__e2setcost(3)
+e2function number stcontroller:getTimeRatio()
+  if(not this) then return nil end
+  return (this.mTimB or 0) / (this.mTimN - this.mTimO))
 end
 
 __e2setcost(3)
@@ -208,24 +275,26 @@ e2function stcontroller stcontroller:setState(number nR, number nY)
     this.mvCon, this.meInt = 0, true  -- Control value and integral enabled
     this.mvP, this.mvI, this.mvD = 0, 0, 0 -- Term values
     this.mTimO, this.mTimN = getTime(), getTime() -- Reset clock
-  else
-    this.mTimO = this.mTimN; this.mTimN = getTime()
-    this.mErrO = this.mErrN; this.mErrN = (this.mbInv and (nY-nR) or (nR-nY))
+  else this.mTimN = getTime()
+    this.mErrN  = (this.mbInv and (nY-nR) or (nR-nY))
     local timDt = (this.mTimN - this.mTimO)
     if(this.mkP > 0) then -- P-Term
       this.mvP = getValue(this.mkP, this.mErrN, this.mpP) end
     if((this.mkI > 0) and (this.mErrN ~= 0) and this.meInt) then -- I-Term
-      local arInt = (this.mErrN + this.mErrO) -- The current integral value
+      local arInt = (this.mErrN + this.mErrO) * timDt -- The current integral value
       this.mvI = getValue(this.mkI * timDt, arInt, this.mpI) + this.mvI end
-    if((this.mkD > 0) and (this.mErrN ~= this.mErrO)) then -- D-Term
-      local arDif = (this.mErrN - this.mErrO) -- Derivative dY/dT
+    if((this.mkD > 0) and (this.mErrN ~= this.mErrO) and (timDt ~= 0)) then -- D-Term
+      local arDif = (this.mErrN - this.mErrO) / timDt -- Derivative dY/dT
       this.mvD = getValue(this.mkD * timDt, arDif, this.mpD) end
-    this.mvCon = this.mvP + this.mvI + this.mvD  -- Calculate the control signal
-    if(this.mSatD and this.mSatU) then -- Apply anti-windup effect
-      if    (this.mvCon < this.mSatD) then this.mvCon, this.meInt = this.mSatD, false
-      elseif(this.mvCon > this.mSatU) then this.mvCon, this.meInt = this.mSatU, false
-      else this.meInt = true end
-    end
+    this.mvCon = this.mvP + this.mvI + this.mvD         -- Calculate the control signal
+    if(this.mSatD and this.mvCon < this.mSatD) then     -- Satuarate lower limit
+      this.mvCon, this.meInt = this.mSatD, false        -- Integral is disabled
+    elseif(this.mSatU and this.mvCon > this.mSatU) then -- Satuarate upper limit
+      this.mvCon, this.meInt = this.mSatU, false        -- Integral is disabled
+    else this.meInt = true end -- Saturation disables the integrator
+    this.mvCon = (this.mvCon + this.mBias) -- Apply the saturated signal bias
+    this.mTimB = (getTime() - this.mTimN)  -- Benchmark the process
+    this.mTimO, this.mErrO = this.mTimN, this.mErrN -- Prepare for the next iteration
   end; return this
 end
 

@@ -21,35 +21,34 @@ E2Lib.RegisterExtension("fsensor", true, "Lets E2 chips trace ray attachments an
 
 local function makeFSensor(vEnt, vPos, vDir, nLen)
   if(not (vEnt and vEnt:IsValid())) then return nil end
-  local oFSensor = {}; oFSensor.Cls = {} -- Table for storing the hit classes
-  oFSensor.Ent = vEnt -- Store attachment entity to manage local sampling
-  oFSensor.Len = math.Clamp(nLen,-50000,50000) -- How long the length is
-  oFSensor.Ign = {[vEnt]=true} -- Store the base entity for ignore
+  local oFSen = {}; oFSen.Cls = {} -- Table for storing the hit classes
+  oFSen.Ent = vEnt -- Store attachment entity to manage local sampling
+  oFSen.Len = math.Clamp(nLen,-50000,50000) -- How long the length is
+  oFSen.Ign = {[vEnt]=true} -- Store the base entity for ignore
   -- Local tracer position the trace starts from
-  oFSensor.Pos = Vector(vPos[1],vPos[2],vPos[3])
+  oFSen.Pos = Vector(vPos[1],vPos[2],vPos[3])
   -- Local tracer direction to read the data of
-  oFSensor.Dir = Vector(vDir[1],vDir[2],vDir[3])
-  oFSensor.Dir:Normalize() -- Normalize the direction
-  oFSensor.Dir:Mul(oFSensor.Len) -- Multiply to add in real-time
-  oFSensor.Len = math.abs(oFSensor.Len) -- Length absolute
+  oFSen.Dir = Vector(vDir[1],vDir[2],vDir[3])
+  oFSen.Dir:Normalize() -- Normalize the direction
+  oFSen.Dir:Mul(oFSen.Len) -- Multiply to add in real-time
+  oFSen.Len = math.abs(oFSen.Len) -- Length absolute
   -- http://wiki.garrysmod.com/page/Structures/TraceResult
-  oFSensor.TrO = {} -- Trace output parameters
+  oFSen.TrO = {} -- Trace output parameters
   -- http://wiki.garrysmod.com/page/Structures/Trace
-  oFSensor.TrI = {
+  oFSen.TrI = {
     mask   = MASK_SOLID,
-    output = oFSensor.TrO,
+    output = oFSen.TrO,
     start  = Vector(), -- The start position of the trace
     endpos = Vector(), -- The end   position of the trace
     filter = function(oEnt)
       if(not (oEnt and oEnt:IsValid())) then return end
-      if(oFSensor.Ign[oEnt]) then return end
-      local tCls, eCls = oFSensor.Cls, oEnt:GetClass()
+      if(oFSen.Ign[oEnt]) then return end
+      local tCls, eCls = oFSen.Cls, oEnt:GetClass()
       if(next(tCls) and (not tCls[eCls])) then return end
       return true -- Finally we register the trace hit enabled
-    end,
-    collisiongroup = COLLISION_GROUP_NONE, -- Collision group control
-    ignoreworld = false } -- Should the trace ignore world or not
-  return oFSensor
+    end, ignoreworld = false, -- Should the trace ignore world or not
+    collisiongroup = COLLISION_GROUP_NONE } -- Collision group control
+  return oFSen
 end
 
 --[[ **************************** TRACER **************************** ]]
