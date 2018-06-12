@@ -24,15 +24,15 @@ local getTime = SysTime
 local function getSign(nV) return ((nV > 0 and 1) or (nV < 0 and -1) or 0) end
 local function getValue(kV,eV,pV) return (kV*getSign(eV)*math.abs(eV)^pV) end
 
-local function makeSControl()
+local function makeStController()
   local oStCon = {}; oStCon.mType = {"",""} -- Place to store the object
   oStCon.mTimN = getTime(); oStCon.mTimO = oStCon.mTimN; -- Reset clock
-  oStCon.mErrO, oStCon.mErrN = 0, 0     -- Error state values
+  oStCon.mErrO, oStCon.mErrN = 0, 0 -- Error state values
   oStCon.mvCon, oStCon.mTimB, oStCon.meInt = 0, 0, true  -- Control value and integral enabled
   oStCon.mBias, oStCon.mSatD, oStCon.mSatU = 0, nil, nil -- Saturation limits and settings
-  oStCon.mvP  , oStCon.mvI  , oStCon.mvD   = 0, 0, 0 -- Term values
-  oStCon.mkP  , oStCon.mkI  , oStCon.mkD   = 0, 0, 0 -- P, I and D term gains
-  oStCon.mpP  , oStCon.mpI  , oStCon.mpD   = 1, 1, 1 -- Raise the error to power of that much
+  oStCon.mvP, oStCon.mvI, oStCon.mvD = 0, 0, 0 -- Term values
+  oStCon.mkP, oStCon.mkI, oStCon.mkD = 0, 0, 0 -- P, I and D term gains
+  oStCon.mpP, oStCon.mpI, oStCon.mpD = 1, 1, 1 -- Raise the error to power of that much
   oStCon.mbCmb, oStCon.mbInv, oStCon.mbOn = false, false, false
   return oStCon
 end
@@ -41,32 +41,33 @@ end
 
 registerOperator("ass", "xsc", "xsc", function(self, args)
   local lhs, op2, scope = args[2], args[3], args[4]
-  local      rhs = op2[1](self, op2)
+  local rhs = op2[1](self, op2)
   self.Scopes[scope][lhs] = rhs
   self.Scopes[scope].vclk[lhs] = true
   return rhs
 end)
 
 __e2setcost(1)
-e2function stcontroller noSControl()
+e2function stcontroller noStController()
   return nil
 end
 
 __e2setcost(20)
-e2function stcontroller newSControl()
-  return makeSControl()
+e2function stcontroller newStController()
+  return makeStController()
 end
 
 __e2setcost(7) -- Kp, Ti, Td
 e2function stcontroller stcontroller:setGains(nP, nI, nD)
   if(not this) then return nil end
-  if(nP <= 0) then return nil end; this.mType[2] = "P"; this.mkP = nP
-  if(nI > 0) then this.mkI, this.mType[2] = (nI / 2), (this.mType[2].."I")
+  if(nP <= 0) then return nil end
+  local sT = "P"; this.mkP = nP
+  if(nI > 0) then this.mkI, sT = (nI / 2), (sT.."I")
     if(this.mbCmb) then this.mkI = this.mkI * this.mkP end
   end
-  if(nD > 0) then this.mkD, this.mType[2] = nD, (this.mType[2].."D")
+  if(nD > 0) then this.mkD, sT = nD, (sT.."D")
     if(this.mbCmb) then this.mkD = this.mkD * this.mkP end
-  end; return this
+  end; this.mType[2] = sT; return this
 end
 
 __e2setcost(3)
@@ -292,12 +293,11 @@ end
 __e2setcost(15)
 e2function stcontroller stcontroller:dumpConsole(string sI)
   print("["..sI.."]["..table.concat(this.mType).."]["..tostring(this.mTimN).."] Properties:")
-  print("  Gains: {P="..tostring(this.mkP)  ..", I=" ..tostring(this.mkI)  ..", D="..tostring(this.mkD).."}")
-  print("  Power: {P="..tostring(this.mpP)  ..", I=" ..tostring(this.mpI)  ..", D="..tostring(this.mpD).."}")
-  print("  Limit: {D="..tostring(this.mSatD)..", U=" ..tostring(this.mSatU).."}")
-  print("  Error: {O="..tostring(this.mErrO)..", N=" ..tostring(this.mErrN).."}")
-  print("  Value: ["  ..tostring(this.mvCon).."] {P="..tostring(this.mvP)  ..", I="
-                      ..tostring(this.mvI)  ..", D=" ..tostring(this.mvD)  .."}")
-  print("  Flags: ["..tostring(this.mbOn).."]{C="..tostring(this.mbCmb)..", R=" ..tostring(this.mbInv)..", I="..tostring(this.meInt).."}")
+  print(" Gains: {P="..tostring(this.mkP)..", I="..tostring(this.mkI)..", D="..tostring(this.mkD).."}")
+  print(" Power: {P="..tostring(this.mpP)..", I="..tostring(this.mpI)..", D="..tostring(this.mpD).."}")
+  print(" Limit: {D="..tostring(this.mSatD)..", U="..tostring(this.mSatU).."}")
+  print(" Error: {O="..tostring(this.mErrO)..", N="..tostring(this.mErrN).."}")
+  print(" Value: ["..tostring(this.mvCon).."] {P="..tostring(this.mvP)..", I="..tostring(this.mvI)..", D=" ..tostring(this.mvD).."}")
+  print(" Flags: ["..tostring(this.mbOn).."] {C="..tostring(this.mbCmb)..", R=" ..tostring(this.mbInv)..", I="..tostring(this.meInt).."}")
   return this -- The dump method
 end

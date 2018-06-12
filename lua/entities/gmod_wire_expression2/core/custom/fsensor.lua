@@ -37,8 +37,8 @@ local function makeFSensor(vEnt, vPos, vDir, nLen)
   -- http://wiki.garrysmod.com/page/Structures/Trace
   oFSen.TrI = {
     mask   = MASK_SOLID,
-    output = oFSen.TrO,
     start  = Vector(), -- The start position of the trace
+    output = oFSen.TrO,
     endpos = Vector(), -- The end   position of the trace
     filter = function(oEnt)
       if(not (oEnt and oEnt:IsValid())) then return end
