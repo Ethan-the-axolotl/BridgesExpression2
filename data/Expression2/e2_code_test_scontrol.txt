@@ -11,17 +11,16 @@ if(first() || dupefinished())
 {
     E = entity()
     T = E:setFSensor(E:massCenterL(),vec(0,0,1), -225):addClassHit("prop_physics")
-    C = newStController():setGains(1700, 6800, 7800):setWindup(-9000,9000):dumpConsole("TEST")
+    C = newStController():setGain(1700, 6800, 7800):setWindup(-9000,9000):dumpConsole("TEST")
     E:setMass(250)
 }
 
 PV = T:smpLocal():getFractionLength()
 CN = C:setState(RF, PV):setToggle(But):getControl()
-
 TT = C:getTimeDelta()
+EE = C:getErrorNow()
+RR = C:getTimeRatio()
+BB = C:getTimeBench()
 
 E:applyForce(CN * vec(0,0,1))
 
-EE = C:getError()
-RR = C:getTimeRatio()
-BB = C:getTimeBench()
