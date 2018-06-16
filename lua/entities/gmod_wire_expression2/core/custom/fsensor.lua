@@ -106,9 +106,21 @@ e2function fsensor fsensor:remClassHit(string sC)
 end
 
 __e2setcost(3)
+e2function number fsensor:getIgnoreWorld()
+  if(not this) then return 0 end
+  return (this.TrI.ignoreworld or 0)
+end
+
+__e2setcost(3)
 e2function fsensor fsensor:setIgnoreWorld(number nN)
   if(not this) then return nil end
   this.TrI.ignoreworld = (nN ~= 0); return this
+end
+
+__e2setcost(3)
+e2function vector fsensor:getOrigin()
+  if(not this) then return {0,0,0} end
+  return {this.Pos[1], this.Pos[2], this.Pos[3]}
 end
 
 __e2setcost(3)
@@ -116,6 +128,12 @@ e2function fsensor fsensor:setOrigin(vector vO)
   if(not this) then return nil end
   this.Pos[1], this.Pos[2], this.Pos[3] = vO[1], vO[2], vO[3]
   return this
+end
+
+__e2setcost(3)
+e2function vector fsensor:getDirection()
+  if(not this) then return nil end
+  return {this.Dir[1], this.Dir[2], this.Dir[3]}
 end
 
 __e2setcost(3)
@@ -127,6 +145,12 @@ e2function fsensor fsensor:setDirection(vector vD)
 end
 
 __e2setcost(3)
+e2function number fsensor:getLength()
+  if(not this) then return nil end
+  return (this.Len or 0)
+end
+
+__e2setcost(3)
 e2function fsensor fsensor:setLength(number nL)
   if(not this) then return nil end
   this.Len = math.Clamp(nL,-50000,50000)
@@ -135,9 +159,21 @@ e2function fsensor fsensor:setLength(number nL)
 end
 
 __e2setcost(3)
+e2function number fsensor:getMask()
+  if(not this) then return 0 end
+  return (this.TrI.mask or 0)
+end
+
+__e2setcost(3)
 e2function fsensor fsensor:setMask(number nN)
   if(not this) then return nil end
   this.TrI.mask = nN; return this
+end
+
+__e2setcost(3)
+e2function number fsensor:getCollisionGroup()
+  if(not this) then return nil end
+  return (this.TrI.collisiongroup or 0)
 end
 
 __e2setcost(3)
