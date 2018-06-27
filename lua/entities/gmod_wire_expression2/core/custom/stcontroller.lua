@@ -28,7 +28,7 @@ local function getSign(nV) return ((nV > 0 and 1) or (nV < 0 and -1) or 0) end
 local function getValue(kV,eV,pV) return (kV*getSign(eV)*math.abs(eV)^pV) end
 
 local function logError(sM, ...)
-  error("E2:stcontroller: "..tostring(sM)); return ...
+  error("E2:stcontroller:"..tostring(sM)); return ...
 end
 
 local function logStatus(sM, ...)
@@ -92,18 +92,16 @@ local function resStControllerState(oStCon)
 end
 
 local function getStControllerType(oStCon)
-  if(not oStCon) then
-    local tT, sR = {}, gtTermMiss[1]
-    tT[1] = gsPowerForm:format(sR,sR,sR)
-    tT[2] = gtTermMiss[2]:rep(3)
+  if(not oStCon) then local tT, sR = {}, gtTermMiss[1]
+    tT[1], tT[2] = gsPowerForm:format(sR,sR,sR), gtTermMiss[2]:rep(3)
     return table.concat(tT, "-")
   end; return table.concat(oStCon.mType, "-")
 end
 
 local function makeStController(nTo)
   local oStCon = {}; oStCon.mnTo = tonumber(nTo) -- Place to store the object
-  if(oStCon.mnTo and oStCon.mnTo <= 0) then
-    return logError("makeStController: Object delta mismatch #"..tostring(oStCon.mnTo), nil) end
+  if(oStCon.mnTo and oStCon.mnTo <= 0) then -- Fixed sampling time delta check
+    return logError("makeStController: Object delta mismatch ("..tostring(oStCon.mnTo)..")", nil) end
   oStCon.mTimN = getTime(); oStCon.mTimO = oStCon.mTimN; -- Reset clock
   oStCon.mErrO, oStCon.mErrN, oStCon.mType = 0, 0, {"(NrNrNr)",gtTermMiss[2]:rep(3)} -- Error state values
   oStCon.mvCon, oStCon.mTimB, oStCon.meInt = 0, 0, true -- Control value and integral enabled
@@ -282,7 +280,7 @@ end
 
 __e2setcost(3)
 e2function vector2 stcontroller:getGainPD()
-  if(not this) then return {0,0,0} end
+  if(not this) then return {0,0} end
   return {this.mkP, this.mkD}
 end
 
