@@ -42,7 +42,7 @@ local function convFSensorDirWorld(oFSen, vE, vA)
   vV:Rotate(rA); return {vV[1], vV[2], vV[3]}
 end
 
-local function convFSensorOrg(oFSen, vE, sF)
+local function convFSensorOrg(oFSen, vE, vA, sF)
   if(not oFSen) then return {0,0,0} end
   local oO, oE = oFSen.Pos, (vE or oFSen.Ent)
   if(not isEntity(oE)) then return {oO[1], oO[2], oO[3]} end
@@ -205,22 +205,32 @@ end
 
 __e2setcost(3)
 e2function vector fsensor:getOriginLocal()
-  return convFSensorOrg(this, nil, "WorldToLocal")
-end
-
-__e2setcost(3)
-e2function vector fsensor:getOriginLocal(entity vE)
-  return convFSensorOrg(this, vE, "WorldToLocal")
+  return convFSensorOrg(this, nil, nil, "WorldToLocal")
 end
 
 __e2setcost(3)
 e2function vector fsensor:getOriginWorld()
-  return convFSensorOrg(this, nil, "LocalToWorld")
+  return convFSensorOrg(this, nil, nil, "LocalToWorld")
+end
+
+__e2setcost(3)
+e2function vector fsensor:getOriginLocal(entity vE)
+  return convFSensorOrg(this, vE, nil, "WorldToLocal")
 end
 
 __e2setcost(3)
 e2function vector fsensor:getOriginWorld(entity vE)
-  return convFSensorOrg(this, vE, "LocalToWorld")
+  return convFSensorOrg(this, vE, nil, "LocalToWorld")
+end
+
+__e2setcost(3)
+e2function vector fsensor:getOriginLocal(angle vA)
+  return convFSensorOrg(this, nil, vA, "WorldToLocal")
+end
+
+__e2setcost(3)
+e2function vector fsensor:getOriginWorld(angle vA)
+  return convFSensorOrg(this, nil, vA, "LocalToWorld")
 end
 
 __e2setcost(3)
