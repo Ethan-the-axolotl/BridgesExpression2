@@ -19,40 +19,46 @@ registerType("fsensor", "xfs", nil,
 
 E2Lib.RegisterExtension("fsensor", true, "Lets E2 chips trace ray attachments and check for hits.")
 
-local function convFSensorDirLocal(oFSen, vE)
+local gnMaxLen = 50000 -- The tracer maximum length just about one cube map
+
+local function isEntity(vE)
+  return (vE and vE:IsValid())
+end
+
+local function convFSensorDirLocal(oFSen, vE, vA)
   if(not oFSen) then return {0,0,0} end
   local oD, oE = oFSen.Dir, (vE or oFSen.Ent)
-  if(not (oE and oE:IsValid())) then return {oD[1], oD[2], oD[3]} end
-  local vV, aE = Vector(oD[1], oD[2], oD[3]), oE:GetAngles()
-  local nX, nY, nZ = vV:Dot(aE:Forward()), vV:Dot(aE:Right()), vV:Dot(aE:Up())
+  if(not (isEntity(oE) or vA)) then return {oD[1], oD[2], oD[3]} end
+  local vV, cA = Vector(oD[1], oD[2], oD[3]), (vA and vA or oE:GetAngles())
+  local nX, nY, nZ = vV:Dot(cA:Forward()), vV:Dot(cA:Right()), vV:Dot(cA:Up())
   nY = -nY; return {nX, nY, nZ} -- Gmod +Y uses left entity coordinate
 end
 
-local function convFSensorDirWorld(oFSen, vE)
+local function convFSensorDirWorld(oFSen, vE, vA)
   if(not oFSen) then return {0,0,0} end
   local oD, oE = oFSen.Dir, (vE or oFSen.Ent)
-  if(not (oE and oE:IsValid())) then return {oD[1], oD[2], oD[3]} end
-  local vV = Vector(oD[1], oD[2], oD[3])
-  vV:Rotate(oE:GetAngles()); return {vV[1], vV[2], vV[3]}
+  if(not (isEntity(oE) or vA)) then return {oD[1], oD[2], oD[3]} end
+  local vV, rA = Vector(oD[1], oD[2], oD[3]), (vA and vA or oE:GetAngles())
+  vV:Rotate(rA); return {vV[1], vV[2], vV[3]}
 end
 
 local function convFSensorOrg(oFSen, vE, sF)
   if(not oFSen) then return {0,0,0} end
   local oO, oE = oFSen.Pos, (vE or oFSen.Ent)
-  if(not (oE and oE:IsValid())) then return {oO[1], oO[2], oO[3]} end
+  if(not isEntity(oE)) then return {oO[1], oO[2], oO[3]} end
   local vV = Vector(oO[1], oO[2], oO[3])
   vV:Set(oE[sF](oE, vV)); return {vV[1], vV[2], vV[3]}
 end
 
 local function makeFSensor(vEnt, vPos, vDir, nLen)
   local oFSen = {}
-  if(vEnt and vEnt:IsValid()) then
+  if(isEntity(vEnt)) then
     oFSen.Ent = vEnt -- Store attachment entity to manage local sampling
     oFSen.Ign = {[vEnt]=true} -- Store the base entity for ignore
   else
     oFSen.Ign, oFSen.Ent = {}, nil -- Make sure the entity is cleared
   end; oFSen.Cls = {} -- Table for storing the hit classes
-  oFSen.Len = math.Clamp(tonumber(nLen or 0),-50000,50000) -- How long the length is
+  oFSen.Len = math.Clamp(tonumber(nLen or 0),-gnMaxLen,gnMaxLen) -- How long the length is
   -- Local tracer position the trace starts from
   oFSen.Pos = Vector(vPos[1],vPos[2],vPos[3])
   -- Local tracer direction to read the data of
@@ -69,7 +75,7 @@ local function makeFSensor(vEnt, vPos, vDir, nLen)
     output = oFSen.TrO,
     endpos = Vector(), -- The end position of the trace
     filter = function(oEnt)
-      if(not (oEnt and oEnt:IsValid())) then return end
+      if(not isEntity(oEnt))) then return end
       if(oFSen.Ign[oEnt]) then return end
       local tCls, eCls = oFSen.Cls, oEnt:GetClass()
       if(next(tCls) and (not tCls[eCls])) then return end
@@ -142,14 +148,14 @@ end
 __e2setcost(3)
 e2function fsensor fsensor:addIgnoreEntityHit(entity vE)
   if(not this) then return nil end
-  if(not (vE and vE:IsValid())) then return nil end
+  if(not isEntity(vE))) then return nil end
   this.Ign[vE] = true; return this
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:remIgnoreEntityHit(entity vE)
   if(not this) then return nil end
-  if(not (vE and vE:IsValid())) then return nil end
+  if(not isEntity(vE))) then return nil end
   this.Ign[vE] = false; return this
 end
 
@@ -168,14 +174,14 @@ end
 __e2setcost(3)
 e2function entity fsensor:getAttachEntity()
   if(not this) then return nil end; local vE = this.Ent
-  if(not (vE and vE:IsValid())) then return nil end; return vE
+  if(not isEntity(vE))) then return nil end; return vE
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:setAttachEntity(entity eE)
   if(not this) then return nil end; local vE = this.Ent
-  if(not (eE and eE:IsValid())) then return this end
-  if(vE and vE:IsValid()) then this.Ign[vE] = false end
+  if(not isEntity(eE))) then return this end
+  if(isEntity(vE)) then this.Ign[vE] = false end
   this.Ent = eE; this.Ign[eE] = true; return this
 end
 
@@ -232,12 +238,7 @@ end
 
 __e2setcost(3)
 e2function vector fsensor:getDirectionLocal()
-  return convFSensorDirLocal(this, nil)
-end
-
-__e2setcost(3)
-e2function vector fsensor:getDirectionLocal(entity vE)
-  return convFSensorDirLocal(this, vE)
+  return convFSensorDirLocal(this, nil, nil)
 end
 
 __e2setcost(3)
@@ -246,8 +247,23 @@ e2function vector fsensor:getDirectionWorld()
 end
 
 __e2setcost(3)
+e2function vector fsensor:getDirectionLocal(entity vE)
+  return convFSensorDirLocal(this, vE, nil)
+end
+
+__e2setcost(3)
 e2function vector fsensor:getDirectionWorld(entity vE)
-  return convFSensorDirWorld(this, nil, vE)
+  return convFSensorDirWorld(this, vE, nil)
+end
+
+__e2setcost(3)
+e2function vector fsensor:getDirectionLocal(angle vA)
+  return convFSensorDirLocal(this, nil, vA)
+end
+
+__e2setcost(3)
+e2function vector fsensor:getDirectionWorld(angle vA)
+  return convFSensorDirWorld(this, nil, vA)
 end
 
 __e2setcost(3)
@@ -267,7 +283,7 @@ end
 __e2setcost(3)
 e2function fsensor fsensor:setLength(number nL)
   if(not this) then return nil end
-  this.Len = math.Clamp(nL,-50000,50000)
+  this.Len = math.Clamp(nL,-gnMaxLen,gnMaxLen)
   this.Dir:Normalize(); this.Dir:Mul(this.Len)
   this.Len = math.abs(this.Len); return this
 end
@@ -299,7 +315,7 @@ end
 __e2setcost(12)
 e2function fsensor fsensor:smpLocal()
   if(not this) then return nil end; local entLoc = this.Ent
-  if(not (entLoc and entLoc:IsValid())) then return this end
+  if(not isEntity(entLoc))) then return this end
   local entAng, trData = entLoc:GetAngles(), this.TrI
   trData.start:Set(this.Pos)
   trData.start:Rotate(entAng)
