@@ -19,6 +19,7 @@ registerType("fsensor", "xfs", nil,
 
 E2Lib.RegisterExtension("fsensor", true, "Lets E2 chips trace ray attachments and check for hits.")
 
+local gaZero = Angle(0,0,0) -- Dummy zerto angle for origin transformations
 local gnMaxLen = 50000 -- The tracer maximum length just about one cube map
 
 local function isEntity(vE)
@@ -42,12 +43,24 @@ local function convFSensorDirWorld(oFSen, vE, vA)
   vV:Rotate(rA); return {vV[1], vV[2], vV[3]}
 end
 
-local function convFSensorOrg(oFSen, vE, vA, sF)
+local function convFSensorOrgEnt(oFSen, sF, vE)
   if(not oFSen) then return {0,0,0} end
   local oO, oE = oFSen.Pos, (vE or oFSen.Ent)
   if(not isEntity(oE)) then return {oO[1], oO[2], oO[3]} end
   local vV = Vector(oO[1], oO[2], oO[3])
   vV:Set(oE[sF](oE, vV)); return {vV[1], vV[2], vV[3]}
+end
+
+local function convFSensorOrgUCS(oFSen, sF, vP, vA)
+  if(not oFSen) then return {0,0,0} end
+  local oO, oE = oFSen.Pos, (vE or oFSen.Ent)
+  if(not isEntity(oE)) then return {oO[1], oO[2], oO[3]} end
+  local oV, vN, aN = Vector(oO[1], oO[2], oO[3])
+  if(sF == "LocalToWorld") then
+    vN, aN = LocalToWorld(oV, gaZero, vP, vA); oV:Set(vN)
+  elseif(sF == "WorldToLocal") then
+    vN, aN = WorldToLocal(oV, gaZero, vP, vA); oV:Set(vN)
+  end; return {oV[1], oV[2], oV[3]}
 end
 
 local function makeFSensor(vEnt, vPos, vDir, nLen)
@@ -205,32 +218,32 @@ end
 
 __e2setcost(3)
 e2function vector fsensor:getOriginLocal()
-  return convFSensorOrg(this, nil, nil, "WorldToLocal")
+  return convFSensorOrgEnt(this, "WorldToLocal", nil)
 end
 
 __e2setcost(3)
 e2function vector fsensor:getOriginWorld()
-  return convFSensorOrg(this, nil, nil, "LocalToWorld")
+  return convFSensorOrgEnt(this, "LocalToWorld", nil)
 end
 
 __e2setcost(3)
 e2function vector fsensor:getOriginLocal(entity vE)
-  return convFSensorOrg(this, vE, nil, "WorldToLocal")
+  return convFSensorOrgEnt(this, "WorldToLocal", vE)
 end
 
 __e2setcost(3)
 e2function vector fsensor:getOriginWorld(entity vE)
-  return convFSensorOrg(this, vE, nil, "LocalToWorld")
+  return convFSensorOrgEnt(this, "LocalToWorld", vE)
 end
 
-__e2setcost(3)
-e2function vector fsensor:getOriginLocal(angle vA)
-  return convFSensorOrg(this, nil, vA, "WorldToLocal")
+__e2setcost(7)
+e2function vector fsensor:getOriginLocal(vector vP, angle vA)
+  return convFSensorOrgUCS(this, "WorldToLocal", vP, vA)
 end
 
-__e2setcost(3)
-e2function vector fsensor:getOriginWorld(angle vA)
-  return convFSensorOrg(this, nil, vA, "LocalToWorld")
+__e2setcost(7)
+e2function vector fsensor:getOriginWorld(vector vP, angle vA)
+  return convFSensorOrgUCS(this, "LocalToWorld", vP, vA)
 end
 
 __e2setcost(3)
