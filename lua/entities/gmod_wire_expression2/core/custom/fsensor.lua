@@ -2,24 +2,38 @@
   My custom flash sensor tracer type ( Based on wire rangers )
 \******************************************************************************/
 
+local next = next
+local Angle = Angle
+local Vector = Vector
+local tostring = tostring
+local tonumber = tonumber
+local LocalToWorld = LocalToWorld
+local WorldToLocal = WorldToLocal
+local mathAbs = math.abs
+local mathClamp = math.Clamp
+local utilTraceLine = util.TraceLine
+local utilGetSurfacePropName = util.GetSurfacePropName
+local outError = error -- The function which generates error and prints it out
+
 -- Register the type up here before the extension registration so that the fsensor still works
 registerType("fsensor", "xfs", nil,
   nil,
   nil,
   function(retval)
     if(retval == nil) then return end
-    if(not istable(retval)) then error("Return value is neither nil nor a table, but a "..type(retval).."!",0) end
+    if(not istable(retval)) then outError("Return value is neither nil nor a table, but a "..type(retval).."!",0) end
   end,
   function(v)
     return (not istable(v)) or (not v.StartPos)
   end
 )
 
-/******************************************************************************/
+/************************************************************************************************************************************************************/
 
 E2Lib.RegisterExtension("fsensor", true, "Lets E2 chips trace ray attachments and check for hits.")
 
-local gaZero = Angle(0,0,0) -- Dummy zerto angle for origin transformations
+local gaZero = Angle(0,0,0) -- Dummy zero angle for transformations
+local gvZero = Vector(0,0,0) -- Dummy zero vector for transformations
 local gnMaxLen = 50000 -- The tracer maximum length just about one cube map
 
 local function isEntity(vE)
@@ -30,25 +44,24 @@ local function convFSensorDirLocal(oFSen, vE, vA)
   if(not oFSen) then return {0,0,0} end
   local oD, oE = oFSen.Dir, (vE or oFSen.Ent)
   if(not (isEntity(oE) or vA)) then return {oD[1], oD[2], oD[3]} end
-  local vV, cA = Vector(oD[1], oD[2], oD[3]), (vA and vA or oE:GetAngles())
-  local nX, nY, nZ = vV:Dot(cA:Forward()), vV:Dot(cA:Right()), vV:Dot(cA:Up())
-  nY = -nY; return {nX, nY, nZ} -- Gmod +Y uses left entity coordinate
+  local oV, oA = Vector(oD[1], oD[2], oD[3]), (vA and vA or oE:GetAngles())
+  return {oV:Dot(oA:Forward()), -oV:Dot(oA:Right()), oV:Dot(oA:Up())}
 end
 
 local function convFSensorDirWorld(oFSen, vE, vA)
   if(not oFSen) then return {0,0,0} end
   local oD, oE = oFSen.Dir, (vE or oFSen.Ent)
   if(not (isEntity(oE) or vA)) then return {oD[1], oD[2], oD[3]} end
-  local vV, rA = Vector(oD[1], oD[2], oD[3]), (vA and vA or oE:GetAngles())
-  vV:Rotate(rA); return {vV[1], vV[2], vV[3]}
+  local oV, oA = Vector(oD[1], oD[2], oD[3]), (vA and vA or oE:GetAngles())
+  oV:Rotate(oA); return {oV[1], oV[2], oV[3]}
 end
 
 local function convFSensorOrgEnt(oFSen, sF, vE)
   if(not oFSen) then return {0,0,0} end
   local oO, oE = oFSen.Pos, (vE or oFSen.Ent)
   if(not isEntity(oE)) then return {oO[1], oO[2], oO[3]} end
-  local vV = Vector(oO[1], oO[2], oO[3])
-  vV:Set(oE[sF](oE, vV)); return {vV[1], vV[2], vV[3]}
+  local oV = Vector(oO[1], oO[2], oO[3])
+  oV:Set(oE[sF](oE, oV)); return {oV[1], oV[2], oV[3]}
 end
 
 local function convFSensorOrgUCS(oFSen, sF, vP, vA)
@@ -71,14 +84,14 @@ local function makeFSensor(vEnt, vPos, vDir, nLen)
   else
     oFSen.Ign, oFSen.Ent = {}, nil -- Make sure the entity is cleared
   end; oFSen.Cls = {} -- Table for storing the hit classes
-  oFSen.Len = math.Clamp(tonumber(nLen or 0),-gnMaxLen,gnMaxLen) -- How long the length is
+  oFSen.Len = mathClamp(tonumber(nLen or 0),-gnMaxLen,gnMaxLen) -- How long the length is
   -- Local tracer position the trace starts from
   oFSen.Pos = Vector(vPos[1],vPos[2],vPos[3])
   -- Local tracer direction to read the data of
   oFSen.Dir = Vector(vDir[1],vDir[2],vDir[3])
   oFSen.Dir:Normalize() -- Normalize the direction
   oFSen.Dir:Mul(oFSen.Len) -- Multiply to add in real-time
-  oFSen.Len = math.abs(oFSen.Len) -- Length absolute
+  oFSen.Len = mathAbs(oFSen.Len) -- Length absolute
   -- http://wiki.garrysmod.com/page/Structures/TraceResult
   oFSen.TrO = {} -- Trace output parameters
   -- http://wiki.garrysmod.com/page/Structures/Trace
@@ -306,9 +319,9 @@ end
 __e2setcost(3)
 e2function fsensor fsensor:setLength(number nL)
   if(not this) then return nil end
-  this.Len = math.Clamp(nL,-gnMaxLen,gnMaxLen)
+  this.Len = mathClamp(nL,-gnMaxLen,gnMaxLen)
   this.Dir:Normalize(); this.Dir:Mul(this.Len)
-  this.Len = math.abs(this.Len); return this
+  this.Len = mathAbs(this.Len); return this
 end
 
 __e2setcost(3)
@@ -347,7 +360,7 @@ e2function fsensor fsensor:smpLocal()
   trData.endpos:Rotate(entAng)
   trData.endpos:Add(trData.start)
   -- http://wiki.garrysmod.com/page/util/TraceLine
-  util.TraceLine(trData); return this
+  utilTraceLine(trData); return this
 end
 
 __e2setcost(8)
@@ -358,7 +371,7 @@ e2function fsensor fsensor:smpWorld()
   trData.endpos:Set(this.Dir)
   trData.endpos:Add(trData.start)
   -- http://wiki.garrysmod.com/page/util/TraceLine
-  util.TraceLine(trData); return this
+  utilTraceLine(trData); return this
 end
 
 __e2setcost(3)
@@ -463,7 +476,7 @@ __e2setcost(3)
 e2function string fsensor:getSurfacePropsName()
   if(not this) then return "" end
   local trV = this.TrO.SurfaceProps
-  return (trV and util.GetSurfacePropName(trV) or "")
+  return (trV and utilGetSurfacePropName(trV) or "")
 end
 
 __e2setcost(3)
