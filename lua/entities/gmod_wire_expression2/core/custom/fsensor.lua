@@ -84,9 +84,10 @@ end
  * 2) The value to return for the status
 ]] local vHit, vSkp, vNop = true, nil, nil
 local function getFSensorHitStatus(oF, vK)
-  if(next(oF.ONLY)) then if(oF.ONLY[vK]) then
+  local tO, tS = oF.ONLY, oF.SKIP
+  if(next(tO)) then if(tO[vK]) then
     return 3, vHit else return 2, vSkp end end
-  if(next(oF.SKIP)) then if(oF.SKIP[vK]) then
+  if(next(tS)) then if(tS[vK]) then
     return 2, vSkp else return 1, vNop end end
   return 1, vNop -- Check next setting on empty table
 end
