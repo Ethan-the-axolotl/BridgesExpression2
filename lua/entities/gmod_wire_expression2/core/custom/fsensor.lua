@@ -92,6 +92,7 @@ local function getFSensorHitStatus(oF, vK)
   return 1, vNop -- Check next setting on empty table
 end
 
+local gtHitCheck = {HMat="GetMaterial", HMod="GetModel", HMtt="GetMaterialType", HCls="GetClass"}
 local function makeFSensor(vEnt, vPos, vDir, nLen)
   local oFSen = {}
   if(isEntity(vEnt)) then
@@ -102,6 +103,8 @@ local function makeFSensor(vEnt, vPos, vDir, nLen)
   end
   oFSen.HCls = {SKIP={},ONLY={}} -- Table for storing the hit classes
   oFSen.HMod = {SKIP={},ONLY={}} -- Table for storing the hit classes
+  oFSen.HMat = {SKIP={},ONLY={}} -- Table for storing the hit classes
+  oFSen.HMtt = {SKIP={},ONLY={}} -- Table for storing the hit classes
   oFSen.Len = mathClamp(tonumber(nLen or 0),-gnMaxLen,gnMaxLen) -- How long the length is
   -- Local tracer position the trace starts from
   oFSen.Pos = Vector(vPos[1],vPos[2],vPos[3])
@@ -116,17 +119,16 @@ local function makeFSensor(vEnt, vPos, vDir, nLen)
   oFSen.TrI = {
     mask = MASK_SOLID, -- Mask telling the trace what to hit
     start = Vector(), -- The start position of the trace
-    output = oFSen.TrO, -- Provide output placeholder table
+    output = oFSen.TrO, -- Provide output place holder table
     endpos = Vector(), -- The end position of the trace
     filter = function(oEnt) local nS, vV
       if(not isEntity(oEnt)) then return end
       nS, vV = getFSensorHitStatus(oFSen.HEnt, oEnt)
       if(nS > 1) then return vV end -- Entity found/skipped
-      nS, vV = getFSensorHitStatus(oFSen.HCls, oEnt:GetClass())
-      if(nS > 1) then return vV end -- Class found/skipped
-      nS, vV = getFSensorHitStatus(oFSen.HCls, oEnt:GetModel())
-      if(nS > 1) then return vV end -- Model found/skipped
-      return true -- Finally we register the trace hit enabled
+      for key, val in pairs(gtHitCheck) do
+        nS, vV = getFSensorHitStatus(oFSen[key], oEnt[val](oEnt))
+        if(nS > 1) then return vV end -- Class found/skipped
+      end; return true -- Finally we register the trace hit enabled
     end, ignoreworld = false, -- Should the trace ignore world or not
     collisiongroup = COLLISION_GROUP_NONE } -- Collision group control
   return oFSen
@@ -196,76 +198,124 @@ __e2setcost(3)
 e2function fsensor fsensor:addEntityHitSkip(entity vE)
   if(not this) then return nil end
   if(not isEntity(vE)) then return nil end
-  oFSen.HEnt.SKIP[vE] = true; return this
+  this.HEnt.SKIP[vE] = true; return this
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:remEntityHitSkip(entity vE)
   if(not this) then return nil end
   if(not isEntity(vE)) then return nil end
-  oFSen.HEnt.SKIP[vE] = nil; return this
+  this.HEnt.SKIP[vE] = nil; return this
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:addEntityHitOnly(entity vE)
   if(not this) then return nil end
   if(not isEntity(vE)) then return nil end
-  oFSen.HEnt.ONLY[vE] = true; return this
+  this.HEnt.ONLY[vE] = true; return this
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:remEntityHitOnly(entity vE)
   if(not this) then return nil end
   if(not isEntity(vE)) then return nil end
-  oFSen.HEnt.ONLY[vE] = nil; return this
+  this.HEnt.ONLY[vE] = nil; return this
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:addClassHitSkip(string sC)
   if(not this) then return nil end
-  oFSen.HCls.SKIP[sC] = true; return this
+  this.HCls.SKIP[sC] = true; return this
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:remClassHitSkip(string sC)
   if(not this) then return nil end
-  oFSen.HCls.SKIP[sC] = nil; return this
+  this.HCls.SKIP[sC] = nil; return this
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:addClassHitOnly(string sC)
   if(not this) then return nil end
-  oFSen.HCls.ONLY[sC] = true; return this
+  this.HCls.ONLY[sC] = true; return this
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:remClassHitOnly(string sC)
   if(not this) then return nil end
-  oFSen.HCls.ONLY[sC] = nil; return this
+  this.HCls.ONLY[sC] = nil; return this
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:addModelHitSkip(string sM)
   if(not this) then return nil end
-  oFSen.HMod.SKIP[sM] = true; return this
+  this.HMod.SKIP[sM] = true; return this
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:remModelHitSkip(string sM)
   if(not this) then return nil end
-  oFSen.HMod.SKIP[sM] = nil; return this
+  this.HMod.SKIP[sM] = nil; return this
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:addModelHitOnly(string sM)
   if(not this) then return nil end
-  oFSen.HMod.ONLY[sM] = true; return this
+  this.HMod.ONLY[sM] = true; return this
 end
 
 __e2setcost(3)
 e2function fsensor fsensor:remModelHitOnly(string sM)
   if(not this) then return nil end
-  oFSen.HMod.ONLY[sM] = nil; return this
+  this.HMod.ONLY[sM] = nil; return this
+end
+
+__e2setcost(3)
+e2function fsensor fsensor:addMaterialHitSkip(string sM)
+  if(not this) then return nil end
+  this.HMat.SKIP[sM] = true; return this
+end
+
+__e2setcost(3)
+e2function fsensor fsensor:remMaterialHitSkip(string sM)
+  if(not this) then return nil end
+  this.HMat.SKIP[sM] = nil; return this
+end
+
+__e2setcost(3)
+e2function fsensor fsensor:addMaterialHitOnly(string sM)
+  if(not this) then return nil end
+  this.HMat.ONLY[sM] = true; return this
+end
+
+__e2setcost(3)
+e2function fsensor fsensor:remMaterialHitOnly(string sM)
+  if(not this) then return nil end
+  this.HMat.ONLY[sM] = nil; return this
+end
+
+__e2setcost(3)
+e2function fsensor fsensor:addMaterialTypeHitSkip(number nT)
+  if(not this) then return nil end
+  this.HMtt.SKIP[nT] = true; return this
+end
+
+__e2setcost(3)
+e2function fsensor fsensor:remMaterialTypeHitSkip(number nT)
+  if(not this) then return nil end
+  this.HMtt.SKIP[nT] = nil; return this
+end
+
+__e2setcost(3)
+e2function fsensor fsensor:addMaterialTypeHitOnly(number nT)
+  if(not this) then return nil end
+  this.HMtt.ONLY[nT] = true; return this
+end
+
+__e2setcost(3)
+e2function fsensor fsensor:remMaterialTypeHitOnly(number nT)
+  if(not this) then return nil end
+  this.HMtt.ONLY[nT] = nil; return this
 end
 
 __e2setcost(3)
