@@ -43,11 +43,11 @@ local function isEntity(vE)
 end
 
 local function logError(sM, ...)
-  outError("E2:stcontroller:"..tostring(sM)); return ...
+  outError("E2:fsensor:"..tostring(sM)); return ...
 end
 
 local function logStatus(sM, ...)
-  outPrint("E2:stcontroller:"..tostring(sM)); return ...
+  outPrint("E2:fsensor:"..tostring(sM)); return ...
 end
 
 local function convFSensorDirLocal(oFSen, vE, vA)
@@ -102,14 +102,14 @@ local function getFSensorHitStatus(oF, vK)
   return 1, vNop -- Check next setting on empty table
 end
 
-local function newFSensorHitFilter(oFSen, sK, sM)
+local function newFSensorHitFilter(oFSen, oChip, sK, sM)
   if(not oFSen) then return nil end 
-  if(not self.entity[sM]) then -- Chech for available method
-    return logError("newFSensorHitFilter: Method <"..sM.."> mismatch", oFSen) end
+  if(sM:sub(1,3) ~= "Get") then -- Check for available method
+    return logError("newFSensorHitFilter: Method <"..sM.."> disabled", oFSen) end
+  if(not oChip.entity[sM]) then -- Check for available method
+    return logError("newFSensorHitFilter: Method <"..sM.."> mismatch", oFSen) end  
   local tHit = oFSen.Hit; tHit.__top = tHit.__top + 1
-  tHit[tHit.__top] = {
-    ID  = (tHit.__top), KEY = sK,
-    CALL= sM, SKIP = {}, ONLY={}}
+  tHit[tHit.__top] = {ID=(tHit.__top),KEY=sK,CALL=sM,SKIP={},ONLY={}}
   tHit.__ID[sK] = tHit.__top; return oFSen
 end
 
@@ -259,7 +259,7 @@ end
 
 __e2setcost(3)
 e2function fsensor fsensor:addOptionHit(string sK, string sM)
-  return newFSensorHitFilter(this, sK, sM)
+  return newFSensorHitFilter(this, self, sK, sM)
 end
 
 __e2setcost(3)
