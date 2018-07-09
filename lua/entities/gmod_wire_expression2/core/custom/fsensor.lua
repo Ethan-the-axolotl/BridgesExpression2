@@ -9,6 +9,7 @@ local tostring = tostring
 local tonumber = tonumber
 local LocalToWorld = LocalToWorld
 local WorldToLocal = WorldToLocal
+local bitBor = bit.bor
 local mathAbs = math.abs
 local mathClamp = math.Clamp
 local tableRemove = table.remove
@@ -42,6 +43,10 @@ local function isEntity(vE)
   return (vE and vE:IsValid())
 end
 
+local function isHere(vV)
+  return (vV ~= nil)
+end
+
 local function logError(sM, ...)
   outError("E2:fsensor:"..tostring(sM)); return ...
 end
@@ -49,6 +54,24 @@ end
 local function logStatus(sM, ...)
   outPrint("E2:fsensor:"..tostring(sM)); return ...
 end
+
+local function convArrayKeys(tA)
+  local nE = #tA ;for ID = 1, #tA do
+    tA[tA[ID]] = true ;tA[ID] = nil; end; return tA
+end
+
+local gtMethList, gsVar = {}, "wire_expression2_fsensor"
+local gnServContr = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY)
+local varMethSkip = CreateConVar(gsVar.."_skip", "", gnServContr)
+cvars.RemoveChangeCallback(varMethSkip:GetName(), varMethSkip:GetName().."_call")
+cvars.AddChangeCallback(varMethSkip:GetName(), function(sVar, vOld, vNew)
+  gtMethList.SKIP = convArrayKeys(("/"):Explode(tostring(vNew or "")))
+end, varMethSkip:GetName().."_call")
+local varMethOnly = CreateConVar(gsVar.."_only", "", gnServContr)
+cvars.RemoveChangeCallback(varMethOnly:GetName(), varMethOnly:GetName().."_call")
+cvars.AddChangeCallback(varMethOnly:GetName(), function(sVar, vOld, vNew)
+  gtMethList.ONLY = convArrayKeys(("/"):Explode(tostring(vNew or "")))
+end, varMethOnly:GetName().."_call")
 
 local function convFSensorDirLocal(oFSen, vE, vA)
   if(not oFSen) then return {0,0,0} end
@@ -94,39 +117,46 @@ end
  * 2) The value to return for the status
 ]] local vHit, vSkp, vNop = true, nil, nil
 local function getFSensorHitStatus(oF, vK)
+  -- Skip current setting on empty data type
+  if(not oF.TYPE) then return 1, vNop end
   local tO, tS = oF.ONLY, oF.SKIP
-  if(next(tO)) then if(tO[vK]) then
+  if(tO and isHere(next(tO))) then if(tO[vK]) then
     return 3, vHit else return 2, vSkp end end
-  if(next(tS)) then if(tS[vK]) then
+  if(tS and isHere(next(tS))) then if(tS[vK]) then
     return 2, vSkp else return 1, vNop end end
   return 1, vNop -- Check next setting on empty table
 end
 
-local function newFSensorHitFilter(oFSen, oChip, sK, sM)
-  if(not oFSen) then return nil end 
-  if(sM:sub(1,3) ~= "Get") then -- Check for available method
+local function newFSensorHitFilter(oFSen, oChip, sM)
+  if(not oFSen) then return nil end
+  if(sM:sub(1,3) ~= "Get" and sM:sub(1,2) ~= "Is" and sM ~= "") then -- Check for available method
     return logError("newFSensorHitFilter: Method <"..sM.."> disabled", oFSen) end
+  local tO = gtMethList.ONLY; if(tO and isHere(next(tO)) and not tO[sM]) then
+    return logError("newFSensorHitFilter: Method <"..sM.."> usage only", oFSen) end
+  local tS = gtMethList.SKIP; if(tS and isHere(next(tS)) and tS[sM]) then
+    return logError("newFSensorHitFilter: Method <"..sM.."> usage skip", oFSen) end
   if(not oChip.entity[sM]) then -- Check for available method
-    return logError("newFSensorHitFilter: Method <"..sM.."> mismatch", oFSen) end  
-  local tHit = oFSen.Hit; tHit.__top = tHit.__top + 1
-  tHit[tHit.__top] = {ID=(tHit.__top),KEY=sK,CALL=sM,SKIP={},ONLY={}}
-  tHit.__ID[sK] = tHit.__top; return oFSen
+    return logError("newFSensorHitFilter: Method <"..sM.."> mismatch", oFSen) end
+  local tHit = oFSen.Hit; if(tHit.__ID[sM]) then -- Check for available method
+    return logError("newFSensorHitFilter: Method <"..sM.."> exists", oFSen) end
+  tHit.__top = tHit.__top + 1; tHit[tHit.__top] = {CALL=sM}
+  tHit.__ID[sM] = tHit.__top; return oFSen
 end
 
-local function remFSensorHitFilter(oFSen, sK)
-  local tHit = oFSen.Hit; tHit.__top = tHit.__top - 1
-  tableRemove(tHit, tHit.__ID[sK])
-  tHit.__ID[sK] = nil; return oFSen
+local function remFSensorHitFilter(oFSen, sM)
+  local tHit = oFSen.Hit; tHit.__top = (tHit.__top - 1)
+  tableRemove(tHit, tHit.__ID[sM])
+  tHit.__ID[sM] = nil; return oFSen
 end
 
-local function setFSensorHitFilterOption(oFSen, sK, sO, vV, bS)
+local function setFSensorHitFilterOption(oFSen, sM, sO, vV, bS)
   if(not oFSen) then return nil end
   local tHit, sTyp = oFSen.Hit, type(vV) -- Obtain hit filter location
-  local nID = tHit.__ID[sK] -- Obtain the current data index
+  local nID = tHit.__ID[sM] -- Obtain the current data index
   local tID = tHit[nID]; if(not tID.TYPE) then tID.TYPE = type(vV) end
   if(tID.TYPE ~= sTyp) then
     return logError("setFSensorHitFilterOption: Type "..sTyp.." mismatch <"..tID.TYPE.."@"..sK..">", oFSen) end
-  tHit[nID][sO][vV] = bS; return oFSen
+  if(not tID[sO]) then tID[sO] = {} end; tHit[nID][sO][vV] = bS; return oFSen
 end
 
 local function makeFSensor(vEnt, vPos, vDir, nLen)
@@ -145,7 +175,7 @@ local function makeFSensor(vEnt, vPos, vDir, nLen)
   -- http://wiki.garrysmod.com/page/Structures/TraceResult
   oFSen.TrO = {} -- Trace output parameters
   -- http://wiki.garrysmod.com/page/Structures/Trace
-  oFSen.TrI = {
+  oFSen.TrI = { -- Trace input parameters
     mask = MASK_SOLID, -- Mask telling the trace what to hit
     start = Vector(), -- The start position of the trace
     output = oFSen.TrO, -- Provide output place holder table
@@ -154,11 +184,11 @@ local function makeFSensor(vEnt, vPos, vDir, nLen)
       if(not isEntity(oEnt)) then return end
       nS, vV = getFSensorHitStatus(tHit.Ent, oEnt)
       if(nS > 1) then return vV end -- Entity found/skipped
-      local nTop = tHit.__top; if(nTop > 0) then 
+      local nTop = tHit.__top; if(nTop > 0) then
         for ID = 1, nTop do local sFoo = tHit[ID].CALL
           nS, vV = getFSensorHitStatus(tHit[ID], oEnt[sFoo](oEnt))
           if(nS > 1) then return vV end -- Option skipped/selected
-        end
+        end -- All options are checked then trace hit notmally
       end; return true -- Finally we register the trace hit enabled
     end, ignoreworld = false, -- Should the trace ignore world or not
     collisiongroup = COLLISION_GROUP_NONE } -- Collision group control
@@ -258,57 +288,57 @@ end
 --[[ **************************** FILTER **************************** ]]
 
 __e2setcost(3)
-e2function fsensor fsensor:addOptionHit(string sK, string sM)
-  return newFSensorHitFilter(this, self, sK, sM)
+e2function fsensor fsensor:addOptionHit(string sM)
+  return newFSensorHitFilter(this, self, sM)
 end
 
 __e2setcost(3)
-e2function fsensor fsensor:remOptionHit(string sK)
-  return remFSensorHitFilter(this, sK)
+e2function fsensor fsensor:remOptionHit(string sM)
+  return remFSensorHitFilter(this, sM)
 end
 
 --[[ **************************** NUMBER **************************** ]]
 
 __e2setcost(3)
-e2function fsensor fsensor:addOptionHitSkip(string sK, number vN)
-  return setFSensorHitFilterOption(this, sK, "SKIP", vN, true)
+e2function fsensor fsensor:addOptionHitSkip(string sM, number vN)
+  return setFSensorHitFilterOption(this, sM, "SKIP", vN, true)
 end
 
 __e2setcost(3)
-e2function fsensor fsensor:remOptionHitSkip(string sK, number vN)
-  return setFSensorHitFilterOption(this, sK, "SKIP", vN, nil)
+e2function fsensor fsensor:remOptionHitSkip(string sM, number vN)
+  return setFSensorHitFilterOption(this, sM, "SKIP", vN, nil)
 end
 
 __e2setcost(3)
-e2function fsensor fsensor:addOptionHitOnly(string sK, number vN)
-  return setFSensorHitFilterOption(this, sK, "ONLY", vN, true)
+e2function fsensor fsensor:addOptionHitOnly(string sM, number vN)
+  return setFSensorHitFilterOption(this, sM, "ONLY", vN, true)
 end
 
 __e2setcost(3)
-e2function fsensor fsensor:remOptionHitOnly(string sK, number vN)
-  return setFSensorHitFilterOption(this, sK, "ONLY", vN, nil)
+e2function fsensor fsensor:remOptionHitOnly(string sM, number vN)
+  return setFSensorHitFilterOption(this, sM, "ONLY", vN, nil)
 end
 
 --[[ **************************** STRING **************************** ]]
 
 __e2setcost(3)
-e2function fsensor fsensor:addOptionHitSkip(string sK, string vS)
-  return setFSensorHitFilterOption(this, sK, "SKIP", vS, true)
+e2function fsensor fsensor:addOptionHitSkip(string sM, string vS)
+  return setFSensorHitFilterOption(this, sM, "SKIP", vS, true)
 end
 
 __e2setcost(3)
-e2function fsensor fsensor:remOptionHitSkip(string sK, string vS)
-  return setFSensorHitFilterOption(this, sK, "SKIP", vS, nil)
+e2function fsensor fsensor:remOptionHitSkip(string sM, string vS)
+  return setFSensorHitFilterOption(this, sM, "SKIP", vS, nil)
 end
 
 __e2setcost(3)
-e2function fsensor fsensor:addOptionHitOnly(string sK, string vS)
-  return setFSensorHitFilterOption(this, sK, "ONLY", vS, true)
+e2function fsensor fsensor:addOptionHitOnly(string sM, string vS)
+  return setFSensorHitFilterOption(this, sM, "ONLY", vS, true)
 end
 
 __e2setcost(3)
-e2function fsensor fsensor:remOptionHitOnly(string sK, string vS)
-  return setFSensorHitFilterOption(this, sK, "ONLY", vS, nil)
+e2function fsensor fsensor:remOptionHitOnly(string sM, string vS)
+  return setFSensorHitFilterOption(this, sM, "ONLY", vS, nil)
 end
 
 -------------------------------------------------------------------------------
