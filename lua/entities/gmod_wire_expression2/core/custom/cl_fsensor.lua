@@ -17,7 +17,6 @@ E2Helper.Descriptions["addEntityHitSkip(xfs:e)"] = "Adds the entity to the "..xf
 E2Helper.Descriptions["remEntityHitSkip(xfs:e)"] = "Removes the entity from the "..xfs.." internal ignore hit list"
 E2Helper.Descriptions["addEntityHitOnly(xfs:e)"] = "Adds the entity to the "..xfs.." internal only hit list"
 E2Helper.Descriptions["remEntityHitOnly(xfs:e)"] = "Removes the entity from the "..xfs.." internal only hit list"
-E2Helper.Descriptions["addOptionHit(xfs:s)"] = "Adds the option to the "..xfs.." internal hit preferences"
 E2Helper.Descriptions["remOptionHit(xfs:s)"] = "Removes the option from the "..xfs.." internal hit preferences"
 E2Helper.Descriptions["addOptionHitSkip(xfs:sn)"] = "Adds the option to the "..xfs.." internal ignore hit list"
 E2Helper.Descriptions["remOptionHitSkip(xfs:sn)"] = "Removes the option from the "..xfs.." internal ignore hit list"
