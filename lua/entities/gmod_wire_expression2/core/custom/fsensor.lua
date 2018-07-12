@@ -159,6 +159,14 @@ local function setFSensorHitFilterOption(oFSen, sM, sO, vV, bS)
   if(not tID[sO]) then tID[sO] = {} end; tHit[nID][sO][vV] = bS; return oFSen
 end
 
+local gtToBool = {[true]=1,[false]=0}
+local function convHitValue(oEnt, sM)
+  local vV = oEnt[sM](oEnt)
+  if(sM:sub(1,2) == "Is") then
+    vV = gtToBool[vV]
+  end; return vV
+end
+
 local function makeFSensor(vEnt, vPos, vDir, nLen)
   local oFSen = {Hit = {__top=0, __ID={}}}
   if(isEntity(vEnt)) then oFSen.Ent = vEnt -- Store attachment entity to manage local sampling
@@ -185,8 +193,8 @@ local function makeFSensor(vEnt, vPos, vDir, nLen)
       nS, vV = getFSensorHitStatus(tHit.Ent, oEnt)
       if(nS > 1) then return vV end -- Entity found/skipped
       local nTop = tHit.__top; if(nTop > 0) then
-        for ID = 1, nTop do local sFoo = tHit[ID].CALL
-          nS, vV = getFSensorHitStatus(tHit[ID], oEnt[sFoo](oEnt))
+        for ID = 1, nTop do local sFoo = tHit[ID].CALL)
+          nS, vV = getFSensorHitStatus(tHit[ID], convHitValue(oEnt, sFoo))
           if(nS > 1) then return vV end -- Option skipped/selected
         end -- All options are checked then trace hit notmally
       end; return true -- Finally we register the trace hit enabled
