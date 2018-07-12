@@ -38,6 +38,8 @@ E2Lib.RegisterExtension("fsensor", true, "Lets E2 chips trace ray attachments an
 local gaZero = Angle(0,0,0) -- Dummy zero angle for transformations
 local gvZero = Vector(0,0,0) -- Dummy zero vector for transformations
 local gnMaxLen = 50000 -- The tracer maximum length just about one cube map
+local gsStrEmpty = "" -- Empty string to use instead of creating one everywhere
+local gsVarEmpty = {["#empty"]=true,[gsStrEmpty]=true} -- Variable being set to empty string
 
 local function isEntity(vE)
   return (vE and vE:IsValid())
@@ -56,21 +58,27 @@ local function logStatus(sM, ...)
 end
 
 local function convArrayKeys(tA)
-  local nE = #tA ;for ID = 1, #tA do
-    tA[tA[ID]] = true ;tA[ID] = nil; end; return tA
+  if(not tA) then return nil end
+  if(not next(tA)) then return nil end
+  local nE = #tA; for ID = 1, #tA do local key = tA[ID]
+    if(not gsVarEmpty[key]) then
+      tA[key] = true end; tA[ID] = nil
+  end; return ((tA and next(tA)) and tA or nil)
 end
 
 local gtMethList, gsVar = {}, "wire_expression2_fsensor"
 local gnServContr = bitBor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_NOTIFY, FCVAR_REPLICATED, FCVAR_PRINTABLEONLY)
-local varMethSkip = CreateConVar(gsVar.."_skip", "", gnServContr)
+
+local varMethSkip = CreateConVar(gsVar.."_skip", gsStrEmpty, gnServContr)
 cvars.RemoveChangeCallback(varMethSkip:GetName(), varMethSkip:GetName().."_call")
 cvars.AddChangeCallback(varMethSkip:GetName(), function(sVar, vOld, vNew)
-  gtMethList.SKIP = convArrayKeys(("/"):Explode(tostring(vNew or "")))
+  gtMethList.SKIP = convArrayKeys(("/"):Explode(tostring(vNew or gsStrEmpty)))
 end, varMethSkip:GetName().."_call")
-local varMethOnly = CreateConVar(gsVar.."_only", "", gnServContr)
+
+local varMethOnly = CreateConVar(gsVar.."_only", gsStrEmpty, gnServContr)
 cvars.RemoveChangeCallback(varMethOnly:GetName(), varMethOnly:GetName().."_call")
 cvars.AddChangeCallback(varMethOnly:GetName(), function(sVar, vOld, vNew)
-  gtMethList.ONLY = convArrayKeys(("/"):Explode(tostring(vNew or "")))
+  gtMethList.ONLY = convArrayKeys(("/"):Explode(tostring(vNew or gsStrEmpty)))
 end, varMethOnly:GetName().."_call")
 
 local function convFSensorDirLocal(oFSen, vE, vA)
@@ -129,7 +137,7 @@ end
 
 local function newFSensorHitFilter(oFSen, oChip, sM)
   if(not oFSen) then return nil end
-  if(sM:sub(1,3) ~= "Get" and sM:sub(1,2) ~= "Is" and sM ~= "") then -- Check for available method
+  if(sM:sub(1,3) ~= "Get" and sM:sub(1,2) ~= "Is" and sM ~= gsStrEmpty) then -- Check for available method
     return logError("newFSensorHitFilter: Method <"..sM.."> disabled", oFSen) end
   local tO = gtMethList.ONLY; if(tO and isHere(next(tO)) and not tO[sM]) then
     return logError("newFSensorHitFilter: Method <"..sM.."> usage only", oFSen) end
@@ -602,9 +610,9 @@ end
 
 __e2setcost(8)
 e2function string fsensor:getHitTexture()
-  if(not this) then return "" end
+  if(not this) then return gsStrEmpty end
   local trV = this.TrO.HitTexture
-  return tostring(trV or "")
+  return tostring(trV or gsStrEmpty)
 end
 
 __e2setcost(8)
@@ -623,9 +631,9 @@ end
 
 __e2setcost(3)
 e2function string fsensor:getSurfacePropsName()
-  if(not this) then return "" end
+  if(not this) then return gsStrEmpty end
   local trV = this.TrO.SurfaceProps
-  return (trV and utilGetSurfacePropName(trV) or "")
+  return (trV and utilGetSurfacePropName(trV) or gsStrEmpty)
 end
 
 __e2setcost(3)
