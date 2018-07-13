@@ -146,6 +146,11 @@ e2function stcontrol newStControl(number nTo)
   return makeStControl(nTo)
 end
 
+__e2setcost(20)
+e2function stcontrol stcontrol:copyStControl()
+  return makeStControl(this.mnTo)
+end
+
 __e2setcost(7)
 e2function stcontrol stcontrol:setGainP(number nP)
   return setStControlGains(this, nP, nil, nil)
@@ -589,7 +594,26 @@ end
 __e2setcost(3)
 e2function number stcontrol:getTimeDelta()
   if(not this) then return 0 end
-  return (this.mTimN - this.mTimO)
+  return ((this.mTimN or 0) - (this.mTimO or 0))
+end
+
+__e2setcost(3)
+e2function number stcontrol:getTimeSample()
+  if(not this) then return 0 end; local nT = this.mnTo
+  return ((nT and nT > 0) and nT or 0)
+end
+
+__e2setcost(3)
+e2function stcontrol stcontrol:setTimeSample(number nT)
+  if(not this) then return 0 end
+  this.mnTo = ((nT and nT > 0) and nT or nil)
+  return this
+end
+
+__e2setcost(3)
+e2function stcontrol stcontrol:remTimeSample()
+  if(not this) then return 0 end
+  this.mnTo = nil; return this
 end
 
 __e2setcost(3)
