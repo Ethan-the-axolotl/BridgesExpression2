@@ -159,7 +159,7 @@ local function remFSensorHitFilter(oFSen, sM)
   tHit.__ID[sM] = nil; return oFSen
 end
 
-local function setFSensorHitFilterOption(oFSen, oChip, sM, sO, vV, bS)
+local function setFSensorHitFilter(oFSen, oChip, sM, sO, vV, bS)
   if(not oFSen) then return nil end
   local tHit, sTyp = oFSen.Hit, type(vV) -- Obtain hit filter location
   local nID = tHit.__ID[sM]; if(not isHere(nID)) then 
@@ -167,7 +167,7 @@ local function setFSensorHitFilterOption(oFSen, oChip, sM, sO, vV, bS)
   end -- Obtain the current data index
   local tID = tHit[nID]; if(not tID.TYPE) then tID.TYPE = type(vV) end
   if(tID.TYPE ~= sTyp) then -- Check the current data type and prevent the user from messing up
-    return logError("setFSensorHitFilterOption: Type "..sTyp.." mismatch <"..tID.TYPE.."@"..sM..">", oFSen) end
+    return logError("setFSensorHitFilter: Type "..sTyp.." mismatch <"..tID.TYPE.."@"..sM..">", oFSen) end
   if(not tID[sO]) then tID[sO] = {} end
   if(sM:sub(1,2) == "Is" and sTyp == "number") then 
     tID[sO][((vV ~= 0) and 1 or 0)] = bS
@@ -310,52 +310,52 @@ end
 --[[ **************************** FILTER **************************** ]]
 
 __e2setcost(3)
-e2function fsensor fsensor:remOptionHit(string sM)
+e2function fsensor fsensor:remHit(string sM)
   return remFSensorHitFilter(this, sM)
 end
 
 --[[ **************************** NUMBER **************************** ]]
 
 __e2setcost(3)
-e2function fsensor fsensor:addOptionHitSkip(string sM, number vN)
-  return setFSensorHitFilterOption(this, self, sM, "SKIP", vN, true)
+e2function fsensor fsensor:addHitSkip(string sM, number vN)
+  return setFSensorHitFilter(this, self, sM, "SKIP", vN, true)
 end
 
 __e2setcost(3)
-e2function fsensor fsensor:remOptionHitSkip(string sM, number vN)
-  return setFSensorHitFilterOption(this, self, sM, "SKIP", vN, nil)
+e2function fsensor fsensor:remHitSkip(string sM, number vN)
+  return setFSensorHitFilter(this, self, sM, "SKIP", vN, nil)
 end
 
 __e2setcost(3)
-e2function fsensor fsensor:addOptionHitOnly(string sM, number vN)
-  return setFSensorHitFilterOption(this, self, sM, "ONLY", vN, true)
+e2function fsensor fsensor:addHitOnly(string sM, number vN)
+  return setFSensorHitFilter(this, self, sM, "ONLY", vN, true)
 end
 
 __e2setcost(3)
-e2function fsensor fsensor:remOptionHitOnly(string sM, number vN)
-  return setFSensorHitFilterOption(this, self, sM, "ONLY", vN, nil)
+e2function fsensor fsensor:remHitOnly(string sM, number vN)
+  return setFSensorHitFilter(this, self, sM, "ONLY", vN, nil)
 end
 
 --[[ **************************** STRING **************************** ]]
 
 __e2setcost(3)
-e2function fsensor fsensor:addOptionHitSkip(string sM, string vS)
-  return setFSensorHitFilterOption(this, self, sM, "SKIP", vS, true)
+e2function fsensor fsensor:addHitSkip(string sM, string vS)
+  return setFSensorHitFilter(this, self, sM, "SKIP", vS, true)
 end
 
 __e2setcost(3)
-e2function fsensor fsensor:remOptionHitSkip(string sM, string vS)
-  return setFSensorHitFilterOption(this, self, sM, "SKIP", vS, nil)
+e2function fsensor fsensor:remHitSkip(string sM, string vS)
+  return setFSensorHitFilter(this, self, sM, "SKIP", vS, nil)
 end
 
 __e2setcost(3)
-e2function fsensor fsensor:addOptionHitOnly(string sM, string vS)
-  return setFSensorHitFilterOption(this, self, sM, "ONLY", vS, true)
+e2function fsensor fsensor:addHitOnly(string sM, string vS)
+  return setFSensorHitFilter(this, self, sM, "ONLY", vS, true)
 end
 
 __e2setcost(3)
-e2function fsensor fsensor:remOptionHitOnly(string sM, string vS)
-  return setFSensorHitFilterOption(this, self, sM, "ONLY", vS, nil)
+e2function fsensor fsensor:remHitOnly(string sM, string vS)
+  return setFSensorHitFilter(this, self, sM, "ONLY", vS, nil)
 end
 
 -------------------------------------------------------------------------------
